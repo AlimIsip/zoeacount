@@ -2,12 +2,19 @@ import Header from "./components/Header";
 import Body from "./components/Body";
 import CardNumber from "./components/CardNumber";
 import CardChart from "./components/CardChart";
-import Capture from "./components/Capture";
-import Timeline from "./components/Timeline";
+import Capture from "./components/CaptureButton";
+import TimelineButton from "./components/TimelineButton";
 
+export async function getStaticProps() {
+    const res = await fetch('http://127.0.0.1:8000/timeline/')
+    const timeline = await res.json()
+    console.log("fetch", {timeline})
+    return {props: {timeline}}
+}
 
-
-export default function About() {
+export default function About({timeline}) {
+    console.log("fetch", timeline)
+    const timelinedata = timeline;
     return (
         <div>
             <Header/>
@@ -20,8 +27,7 @@ export default function About() {
                     <div className="flex flex-col w-2/3">
                         <div className="flex flex-row">
                             <Capture/>
-                            <Timeline/>
-
+                            <TimelineButton timelinedata ={timelinedata}/>
                         </div>
                     </div>
                 </div>
