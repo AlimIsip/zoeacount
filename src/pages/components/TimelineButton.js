@@ -4,11 +4,14 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import TimelineTable from './timelinetable.js';
 
-export default function Capture(){
+
+
+export default function TimelineButton({timelinedata}){
     const [showModal, setShowModal] = useState(false);
 
-    return(
-    <>
+    return (
+        <>
+        <button>
             <Image
                 onClick={() => setShowModal(true)}
                 className="p-1 clipping-container"
@@ -16,11 +19,14 @@ export default function Capture(){
                 width={64}
                 height={64}
                 alt={"aa"}/>
-        {showModal && createPortal(
-            <TimelineTable onClose={() => setShowModal(false)} />,
-            document.body
-        )}
+        </button>
+    {showModal && createPortal(
+        <TimelineTable timelinedata={timelinedata} onClose={() => setShowModal(false)} />,
+        document.body
+    )}
     </>
+
+
 
     )
 }
