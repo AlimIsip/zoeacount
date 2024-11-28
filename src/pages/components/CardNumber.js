@@ -1,4 +1,4 @@
-export default function CardNumber({number, title}) {
+export default function CardNumber({number, title, src}) {
     return (
         <div
             className="block
@@ -13,7 +13,9 @@ export default function CardNumber({number, title}) {
            dark:bg-gray-800
            dark:border-gray-700
            dark:hover:bg-gray-700">
-
+            <img
+            src={src}
+            />
             <h5 className="mb-2 text-5xl text-center font-bold tracking-tight text-gray-900 dark:text-white">
                 {number}
             </h5>

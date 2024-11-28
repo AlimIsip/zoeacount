@@ -5,7 +5,7 @@ import TimelineTable from './timelinetable.js';
 
 
 
-export default function TimelineButton({timelinedata}){
+export default function TimelineButton(){
     const [showModal, setShowModal] = useState(false);
 
     return (
@@ -20,7 +20,7 @@ export default function TimelineButton({timelinedata}){
                 alt={"aa"}/>
         </button>
     {showModal && createPortal(
-        <TimelineTable timelinedata={timelinedata} onClose={() => setShowModal(false)} />,
+        <TimelineTable onClose={() => setShowModal(false)} />,
         document.body
     )}
     </>

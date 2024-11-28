@@ -4,17 +4,25 @@ import CardNumber from "./components/CardNumber";
 import CardChart from "./components/CardChart";
 import Capture from "./components/CaptureButton";
 import TimelineButton from "./components/TimelineButton";
+import {useEffect, useState} from "react";
 
-export async function getStaticProps() {
-    const res = await fetch('http://127.0.0.1:8000/timeline/')
-    const timeline = await res.json()
-    console.log("fetch", {timeline})
-    return {props: {timeline}}
-}
 
-export default function About({timeline}) {
-    console.log("fetch", timeline)
-    const timelinedata = timeline;
+
+
+
+export default function About() {
+    const [data, setData] = useState([])
+
+    useEffect(() => {
+        fetch('http://127.0.0.1:8000/api/table/dashboard')
+            .then((res) => res.json())
+            .then((data) => {
+                setData(data)
+            })
+    }, [])
+    console.log(data)
+
+
     return (
         <div>
             <Header/>
@@ -27,14 +35,14 @@ export default function About({timeline}) {
                     <div className="flex flex-col w-2/3">
                         <div className="flex flex-row">
                             <Capture/>
-                            <TimelineButton timelinedata ={timelinedata}/>
+                            <TimelineButton/>
                         </div>
                     </div>
                 </div>
                 <div className="flex flex-row ">
                     <div className="flex flex-col w-1/3">
-                        <CardNumber number={"574"} title={"Latest Count"}/>
-                        <CardNumber number={"12.09%"} title={"Mortality Rate"}/>
+                        <CardNumber number={data.count_data} title={"Latest Count"}/>
+                        <CardNumber number={data.mortality_rate} title={"Mortality Rate"}/>
                     </div>
 
                     <div className="flex flex-col w-1/3">
@@ -48,7 +56,7 @@ export default function About({timeline}) {
                 </div>
                 <div className="flex flex-row">
                     <div className="flex flex-col w-1/3">
-                        <CardNumber/>
+                        <CardNumber src={data.img_blob}/>
                     </div>
 
                     <div className="flex flex-col w-1/3">

@@ -1,8 +1,18 @@
+import { useState, useEffect } from 'react'
 
-
-export default function TimelineTable({timelinedata, onClose})
+export default function TimelineTable({onClose})
  {
-    console.log(onClose)
+     const [data, setData] = useState([])
+
+     useEffect(() => {
+         fetch('http://127.0.0.1:8000/api/table')
+             .then((res) => res.json())
+             .then((data) => {
+                 setData(data)
+             })
+     }, [])
+     console.log(data)
+
     return (
         <div className="bg-amber-100 p-10 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
             <h1>Messages</h1>
@@ -18,14 +28,14 @@ export default function TimelineTable({timelinedata, onClose})
                 </tr>
                 </thead>
                 <tbody>
-                {timelinedata.map((row, index) => (
-                    <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700" key={index}>
+                {data.map((row) => (
+                    <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                         <td className="px-6 py-4">{row.id}</td>
-                        <td className="px-6 py-4">img</td>
-                        <td className="px-6 py-4">{row.date_time}</td>
+                        <td className="px-6 py-4"><img src={row.img_blob}/></td>
+                        <td className="px-6 py-4">{row.timestamp}</td>
                         <td className="px-6 py-4">{row.count_data}</td>
-                        <td className="px-6 py-4">{row.mortality}</td>
-                        <td className="px-6 py-4">{row.cumulative_mortality}</td>
+                        <td className="px-6 py-4">{row.mortality_rate}</td>
+                        <td className="px-6 py-4">{row.cumulative_mortality_rate}</td>
                     </tr>
                 ))}
                 </tbody>

@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "fastapi-dev": "python.exe -m uvicorn src.api.main:app --reload",
     "next-dev": "next dev",
-    "dev": "concurrently \"npm run next-dev\" \"npm run fastapi-dev\"",
+    "dev": "concurrently \"npm run next-dev\" \"python ./src/api/zoeacount/manage.py runserver\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -24,7 +23,6 @@
     "concurrently": "^9.0.1",
     "eslint": "8.41.0",
     "eslint-config-next": "13.4.4",
-    "fastapi": "^0.0.8",
     "framer-motion": "^11.5.4",
     "next": "^14.2.13",
     "postcss": "^8.4.47",

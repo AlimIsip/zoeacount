@@ -5,8 +5,6 @@ import CameraPopup from "@/pages/components/CameraPopup";
 
 
 
-
-
 export default function CaptureButton(){
     const [showModal, setShowModal] = useState(false);
 
