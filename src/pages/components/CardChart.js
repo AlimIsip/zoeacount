@@ -1,6 +1,62 @@
-import {LineChart, Line, CartesianGrid, XAxis, YAxis, ResponsiveContainer} from 'recharts';
+import {LineChart, Line, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend} from 'recharts';
 
-export default function CardChart(props) {
+export function ChartLine({chart_data, data_column}){
+
+    let data;
+    data = [];
+
+    if (data_column === "count data"){
+        chart_data.map((item)=>(
+                data.push(
+                    {   name: item.age,
+                        uv: item.count_data,
+                        amt: 2000
+                    }
+                )
+            )
+        )
+    }
+    else if (data_column === "mortality rate"){
+        chart_data.map((item)=>(
+                data.push(
+                    {   name: item.age,
+                        uv: item.mortality_rate,
+                        amt: 2000
+                    }
+                )
+            )
+        )
+    }
+
+
+
+
+
+    console.log("chart data is now:" , data)
+
+
+
+
+    const renderLineChart = (
+        <ResponsiveContainer aspect={1.75}  minHeight={"30%"}>
+            <LineChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                <Line type="monotone" dataKey="uv" stroke="#8884d8" />
+                <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+            </LineChart>
+        </ResponsiveContainer>
+
+    );
+    return(renderLineChart)
+
+}
+
+
+export default function CardChart({chart_data, label, data_column}) {
+    console.log("chart data in card chart is:", chart_data);
 
     return (<div
         className="block
@@ -17,35 +73,12 @@ export default function CardChart(props) {
            dark:border-gray-700
            dark:hover:bg-gray-700">
 
-            <ChartLine />
+        <ChartLine chart_data={chart_data} data_column={data_column}/>
         <p className="font-normal text-center text-gray-700 dark:text-gray-400">
-          aaa
+            {label}
         </p>
     </div>
 
     )
 }
 
-export function ChartLine(){
-    const data = [
-        {name: 'Page A', uv: 400, pv: 2400, amt: 2400},
-        {name: 'Page B', uv: 500, pv: 2400, amt: 2400},
-        {name: 'Page C', uv: 100, pv: 2400, amt: 2400},
-        {name: 'Page D', uv: 200, pv: 2400, amt: 2400},
-        {name: 'Page E', uv: 300, pv: 2400, amt: 2400},
-        {name: 'Page F', uv: 200, pv: 2400, amt: 2400}];
-
-    const renderLineChart = (
-        <ResponsiveContainer aspect={1.75}  minHeight={"30%"}>
-            <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <Line type="monotone" dataKey="uv" stroke="#8884d8" />
-                <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-                <XAxis dataKey="name" />
-                <YAxis />
-            </LineChart>
-        </ResponsiveContainer>
-
-    );
-    return(renderLineChart)
-
-}
