@@ -28,9 +28,6 @@ export default function Home() {
         })
   }, [])
 
-
-  console.log("Chart_data in about: ", chart_data)
-
   function nextPhaseDays(){
     return (data.phase * 4) - data.age;
   }

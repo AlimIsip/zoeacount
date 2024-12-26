@@ -28,15 +28,6 @@ export function ChartLine({chart_data, data_column}){
         )
     }
 
-
-
-
-
-    console.log("chart data is now:" , data)
-
-
-
-
     const renderLineChart = (
         <ResponsiveContainer aspect={1.75}  minHeight={"30%"}>
             <LineChart data={data} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>

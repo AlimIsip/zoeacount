@@ -1,4 +1,13 @@
-FROM ubuntu:latest
-LABEL authors="Client"
+FROM node:18
 
-ENTRYPOINT ["top", "-b"]
+WORKDIR /zoeacount/
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

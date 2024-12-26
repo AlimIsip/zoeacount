@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "next-dev": "next dev",
-    "dev": "concurrently \"npm run next-dev\" \"python ./src/api/zoeacount/manage.py runserver\"",
+    "dev": "concurrently  \"npm run next-dev\"  ",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
