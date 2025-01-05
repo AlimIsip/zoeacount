@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import Header from "@/pages/components/Header";
 import Body from "@/pages/components/Body";
-import Pagination from "@/pages/components/Pagination";
 import Image from "next/image";
 
 export default function TimelineTable({onClose})

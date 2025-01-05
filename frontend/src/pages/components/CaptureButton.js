@@ -1,7 +1,6 @@
 import Image from "next/image";
 import React, {useState} from "react";
 import {createPortal} from "react-dom";
-import CameraPopup from "@/pages/components/CameraPopup";
 import Link from "next/link";
 
 
