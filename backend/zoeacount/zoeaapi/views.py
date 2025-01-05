@@ -1,9 +1,12 @@
 from django.shortcuts import render
-from django.http.response import JsonResponse, FileResponse
+from django.http.response import JsonResponse, FileResponse, StreamingHttpResponse
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.response import Response
 from rest_framework import status
+
+
+from picamera2 import Picamera2
 
 from .models import ZoeaTable
 from .serializer import ZoeaTableSerializer
@@ -18,6 +21,20 @@ import os
 from io import BytesIO
 import base64
 import cv2
+
+
+
+camera = Picamera2()
+camera.configure(camera.create_preview_configuration(main={"format": 'XRGB8888', "size": (640, 480)}))
+camera.start()
+
+def generate_frames():
+    while True:
+        frame = camera.capture_array()
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
 # Create your views here.
@@ -78,8 +95,9 @@ def upload_raw_img(request):
 
     return FileResponse(BytesIO(buffer), content_type='image/jpeg')
 
-
-
+@api_view(['GET'])
+def video_feed(request):
+    return StreamingHttpResponse(generate_frames(), content_type='multipart/x-mixed-replace; boundary=frame')
 
 # @api_view(['GET', 'PUT', 'DELETE'])
 # def zoea_entry_func(request, pk):
