@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 RUN apt-get update \
-    && apt-get install -y build-essential libgl1 libglib2.0-0\
+    && apt-get install -y build-essential libgl1 libglib2.0-0 \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && rm -rf /var/lib/apt/lists/*
 
@@ -32,7 +32,7 @@ COPY . /app/
 
 COPY ./start /start
 RUN sed -i 's/\r$//g' /start
-RUN chmod +x /start
+sRUN chmod +x /start
 
 CMD python manage.py migrate --no-input && \
     python manage.py collectstatic --no-input && \
