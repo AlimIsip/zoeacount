@@ -1,10 +1,10 @@
 FROM python:3.10
 
-ENV APP_HOME /app
-RUN mkdir -p ${APP_HOME}
+RUN mkdir -p /app
 
-WORKDIR ${APP_HOME}
+WORKDIR /app
 
+<<<<<<< HEAD
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
@@ -12,10 +12,17 @@ RUN apt-get update \
     && apt-get install -y build-essential libgl1 libglib2.0-0 \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && rm -rf /var/lib/apt/lists/*
+=======
+RUN apt-get update 
+RUN apt-get install -y build-essential libgl1 libglib2.0-0
+RUN apt-get install -y python3-picamera2 
+RUN apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false 
+RUN rm -rf /var/lib/apt/lists/*
+>>>>>>> 9826880 ([Docker] Fix attempt on Docker)
 
 RUN pip3 install --upgrade pip
 
-COPY ./requirements.txt ${APP_HOME}/requirements.txt
+COPY ./requirements.txt /app/requirements.txt
 
 RUN pip3 install -r requirements.txt
 RUN pip3 install django-user-sessions
@@ -26,7 +33,7 @@ RUN pip3 install django-filter
 RUN pip3 install opencv-python
 RUN pip3 install opencv-contrib-python
 RUN pip3 install imutils
-RUN pip3 install opencv-python
+RUN pip3 install picamera2
 
 COPY . /app/
 

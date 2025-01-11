@@ -6,7 +6,11 @@ urlpatterns = [
     path('table/dashboard', get_dashboard_stats, name='dashboard'),
     path('table/create', create_entry, name='create'),
     path('charts/', get_chart_stats, name='dashboard_stats'),
+<<<<<<< HEAD
     path('detect_larva', upload_raw_img, name='upload_raw_img')
+=======
+    path('detect_larva', upload_raw_img, name='upload_raw_img'),
+>>>>>>> 9826880 ([Docker] Fix attempt on Docker)
     # path('video_feed', video_feed, name='video_feed')
     # path('table/<int:pk>', zoea_entry_func, name='zoea_entry'),
 ]
