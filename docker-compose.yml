@@ -10,11 +10,18 @@ services:
       - "8000:8000"
     volumes:
       - ./backend/zoeacount:/app
+      - /usr/lib:/usr/lib
+      - /usr/share/libcamera:/usr/share/libcamera
+      - /run/udev:/run/udev:ro
     privileged: true
     devices:
-      - "/dev/vchiq:/dev/vchiq"
+      - "/dev:/dev"
+    environment:
+      - LD_LIBRARY_PATH=/usr/lib
+      - LIBCAMERA_LOG_LEVELS=3
     networks:
       - zoeacount
+    restart: always
 
   frontend:
     build:
