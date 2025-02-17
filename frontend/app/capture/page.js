@@ -1,7 +1,8 @@
 import Wizard from "@/components/wizards/Wizard";
 
-export default function capture(){
 
+
+export default async function capture(){
 
     return(
         <div>

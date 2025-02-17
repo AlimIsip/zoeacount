@@ -21,6 +21,7 @@ export default function CaptureImagePage({setCurrentPage}) {
       width: 1920,
       height: 1080,
     });
+    
     // // Convert the base64 string to a Blob in JPEG format
     // const base64Data = imageSrc.split(",")[1]; // Remove the data URL prefix
     // const byteCharacters = atob(base64Data); // Decode base64 to binary

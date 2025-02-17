@@ -47,50 +47,44 @@ export default async function Home() {
         <div className="grid grid-cols-5 grid-flow gap-2 px-14 py-3">
           <div className="col-span-5 flex">
             <h1 className="text-4xl flex-auto">Dashboard</h1>
-            <div className="flex-none flex-col">
-              <h1 className="text-3xl flex-auto text-right">Day 3</h1>
-              <h1 className="text-2xl flex-auto text-right">Batch 1</h1>
-            </div>
           </div>
-          <div className="flex flex-col grow">
-            <Card
-              title={dashboard_data.count_data}
-              description={"Latest Count"}
-            />
-          </div>
-          <div className="col-span-2">
-            <Card
-              chartData={chart_data}
-              dataColumn={"count data"}
-              description={"Count Data"}
-            />
-          </div>
-          <div className="col-span-2">
+          <div className="col-span-3 row-span-2">
             <Card
               imgSrc={dashboard_data.img_blob}
               description={"Latest capture"}
             />
           </div>
-          <div className="flex flex-row">
-            <div className="flex flex-col grow">
-              <Card
-                title={dashboard_data.mortality_rate}
-                description={"Mortality Rate"}
-              />
-              <Card
-                title={dashboard_data.mortality_rate}
-                description={"Cumulative Mortality Rate"}
-              />
-            </div>
-          </div>
-          <div className="col-span-2">
-            <Card
-              chartData={chart_data}
-              dataColumn={"mortality rate"}
-              description={"Mortality Rate"}
+          
+          <div className="flex flex-col grow">
+          <Card
+              title={"Batch 3"}
             />
           </div>
-          <div className="col-span-2">
+          <div className="flex flex-col grow">
+             <Card
+              title={"Day 3"}
+            />
+          </div>
+
+          <div className="flex flex-col col-span-2 grow ">
+                      <Card
+              title={dashboard_data.count_data}
+              description={"Latest Count"}
+            />
+             <Card
+              chartData={chart_data}
+              dataColumn={"count data"}
+              description={"Count Data"}
+            />
+            <Card
+              title={"January 1, 2025"}
+              description={"Latest Count Date"}
+            />
+             
+            
+          </div>
+  
+          <div className="col-span-3">
             <Card description={"Current Phase Timeline"}>
               {phaseTimelineChart(5, 3)}
             </Card>
@@ -101,6 +95,10 @@ export default async function Home() {
               {phaseTimelineChart(20, 3)}
             </Card>
           </div>
+          <div className="col-span-2">
+            <Card title={"February 1, 2024"} description={"Expected Megalopa Date"}/>
+          </div>
+          
         </div>
       </Body>
     </div>

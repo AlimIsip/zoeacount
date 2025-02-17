@@ -1,14 +1,16 @@
-import CaptureButton from "@/components/wizards/capture/OptionsPage";
-import UploadImagePage from "@/components/wizards/capture/UploadImagePage";
 import ResultsPage from "@/components/wizards/capture/ResultsPage";
-import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
-import UserInfoModal from "@/components/modals/UserInfoModal";
 
-
-export default async function test() {
+export default async function Test() {
   return (
-    <>
-      <ChangePasswordModal/>
-    </>
+    <div>
+      <ResultsPage
+        countData={13}
+        imageUrl={"http://localhost:8000/results/a.jpg"}
+        batchData={1}
+        captureDate={"11-22-31"}
+        captureTime={"11:12:12"}
+      />
+      
+    </div>
   );
 }

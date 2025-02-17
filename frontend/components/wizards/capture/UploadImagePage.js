@@ -1,77 +1,130 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  useDisclosure,
+} from "@heroui/react";
 
-export default function UploadImagePage() {
+export default function UploadImagePage({
+  setCurrentPage,
+    setFileName,
+  fileName,
+  onUploadClick,
+  uploading,
+  uploaded,
+  countData,
+  imageUrl,
+
+  error
+}) {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleImageChange = (e) => {
-    const fileInput = event.target;
     const file = e.target.files[0];
+    console.log(file);
     if (file) {
-      const fileName = file.name;
       setImage(file);
       setPreview(URL.createObjectURL(file));
-
-      fileInput.value = "";
+      setFileName(file.name);
     }
   };
 
-  const handleUpload = async () => {
-    if (!image) return;
-
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", image);
-
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        alert("Upload successful: " + data.message);
-      } else {
-        alert("Upload failed");
-      }
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      alert("Upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
 
   return (
     <div>
-      <div className="grid-cols-2 grid h-64">
-        <div className="flex bg-slate-500 border-3 items-center place-content-center">
-          <div className="bg-blue-500 border-3">
-            {preview && (
-              <img
-                src={preview}
-                alt="Preview"
-                className="max-h-80 object-cover"
-              />
-            )}
-          </div>
+      <div className="grid grid-cols-2 h-64">
+        <div className="flex bg-slate-500 border-3 items-center justify-center">
+          {preview && (
+            <img
+              src={preview}
+              alt="Preview"
+              className="max-h-80 object-cover"
+            />
+          )}
         </div>
+        <div className="flex flex-col bg-slate-500 border-3 items-center justify-center gap-2">
+          <input type="file" accept="image/*" onChange={handleImageChange} />
+          {fileName && <p className="text-white">{fileName}</p>}
+          <Button
+            onPress={() => {
+              onUploadClick(image);
+              onOpen();
+            }}
+            disabled={!image || uploading}
+            className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+          >
+            "Upload Image"
+          </Button>
 
-        <div className="flex bg-slate-500 border-3 items-center place-content-center">
-        <input type="file" accept="image/*" onChange={handleImageChange} />
-          <div className="bg-blue-500 border-3 align-middle">
-            <button
-              onClick={handleUpload}
-              disabled={!image || uploading}
-              className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
-            >
-              {uploading ? "Uploading..." : "Upload Image"}
-            </button>
-          </div>
+          <Modal backdrop={"blur"} isOpen={isOpen} onClose={onClose}>
+            <ModalContent>
+              {(onClose) => (
+                <>
+                  <ModalHeader className="flex flex-col gap-1">
+                    Modal Title
+                  </ModalHeader>
+                  <ModalBody>
+                    {uploading ? (
+                      <p> Uploading ...</p>
+                    ) : uploaded ? (
+                      <>
+                        <p> Upload successful! </p>
+                        {countData && imageUrl ? ( 
+                          <>
+                            <p> Inference successful! </p>
+                            <Button
+                              color="primary"
+                              onPress={() => {
+                                setCurrentPage(3);
+                                onClose();
+                              }}
+                            >
+                              Proceed
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <p style={{ color: "red" }}>Error: {error}</p>
+                            <Button
+                              color="danger"
+                              variant="light"
+                              onPress={onClose}
+                            >
+                              Close
+                            </Button>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <div>
+                        <p> Upload failed </p>
+                        <Button
+                          color="danger"
+                          variant="light"
+                          onPress={onClose}
+                        >
+                          Close
+                        </Button>
+                      </div>
+                    )}
+                  </ModalBody>
+                  <ModalFooter>
+                    <Button color="danger" variant="light" onPress={onClose}>
+                      Cancel
+                    </Button>
+                  </ModalFooter>
+                </>
+              )}
+            </ModalContent>
+          </Modal>
         </div>
       </div>
     </div>

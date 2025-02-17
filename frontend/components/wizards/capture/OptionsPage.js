@@ -13,15 +13,17 @@ export default function OptionsPage({setCaptureOption, setCurrentPage}) {
           <div className="bg-blue-500 border-3 cursor-pointer" 
           onClick={() => {setCaptureOption("Capture"); setCurrentPage(2)}} >
             <CaptureIcon />
-            <p>pokemon</p>
+            <p>Capture Image</p>
           </div>
         </div>
 
         <div className="flex flex-grow m-3 bg-slate-500 border-3 items-center place-content-center">
-          <div className="bg-blue-500 border-3 cursor-pointer" 
+          <div className="bg-blue-500 border-3 flex place-content-center cursor-pointer" 
           onClick={() => {setCaptureOption("Upload"); setCurrentPage(2)}}>
             <UploadIcon />
-            <p>pokemon</p>
+            <div className="flex">
+            <p>Upload Image</p>
+            </div>
           </div>
         </div>
       </div>

@@ -24,12 +24,14 @@ export default function Card({
       <div
         className="block
         flex-wrap
+        flex-grow
         px-2
         py-3
         m-2
         rounded-lg 
         shadow-sm
-        bg-slate-300"
+        bg-slate-300
+        "
       >
         {children}
         {/* Image */}

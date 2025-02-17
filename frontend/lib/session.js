@@ -97,18 +97,18 @@ export async function fetchWithAuth(url, options = {}) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('access_token')?.value;
 
-  if (!accessToken) {
-    return { error: 'No access token' };
-  }
 
+
+  const headers = { ...options.headers, Authorization: `Bearer ${accessToken}` };
+  
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   try {
     const response = await fetch(url, {
       ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
 
     // If unauthorized, try to refresh token
@@ -134,6 +134,4 @@ export async function fetchWithAuth(url, options = {}) {
     return { error: 'Network error' };
   }
 }
-
-
 
