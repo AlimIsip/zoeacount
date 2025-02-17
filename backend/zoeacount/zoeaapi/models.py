@@ -9,10 +9,8 @@ class ZoeaTable(models.Model):
     datestamp = models.DateField(auto_now_add=True)
     timestamp = models.TimeField(auto_now_add=True)
     age = models.IntegerField(default=0, blank=True, null=True)
-    phase = models.IntegerField(default=0, blank=True, null=True)
+    megalopa_datestamp = models.CharField(blank=True, null=True, max_length=255)
     count_data = models.IntegerField(default=0)
-    mortality_rate = models.FloatField(default=0)
-    cumulative_mortality_rate = models.FloatField(default=0)
     captured_by = models.CharField(blank=True, null=True, max_length=255)
 
 class ZoeaBatch(models.Model):

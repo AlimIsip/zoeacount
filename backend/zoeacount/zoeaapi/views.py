@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, parser_classes, authentication_c
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
+from django.db.models import Max
 
 #Local imports for authentication
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
@@ -114,54 +115,152 @@ def create_entry(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def upload_raw_img(request):
     # Retrieve uploaded image
-    image = request.FILES['img_blob']
+    image = request.FILES['image']
     print("received: ", image)
     # Save the uploaded image to the cv_app_path
     base_dir = Path(__file__).resolve().parent.parent
-    cv_app_path = base_dir / "zoeaapi" / "cv_app"
+    cv_app_path = base_dir / "zoeaapi" / "cv_app" / "to_detect"
     fs = FileSystemStorage(location=cv_app_path)
     filename = fs.save(image.name, image)
+    return Response({"message": "Image uploaded successfully", "filename": filename}, status=201)
 
-    # Perform object detection
-    # image_path = os.path.join(cv_app_path, filename)
-    TFLite_detection_image.object_detect(0.5, image.name)
-    image_path = base_dir / "zoeaapi" / "cv_app" / "results" / "larvae_image.jpg"
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def img_inference(request):
+    """
+    Perform object detection and return the count data.
+    """
+    try:
+        filename = request.data.get("filename")
+        if not filename:
+            return JsonResponse({"error": "Filename not provided"}, status=400)
 
-    # Load the processed image
-    img = cv2.imread(str(image_path))
-    if img is None:
-        return JsonResponse({"error": "Failed to load the image"}, status=400)
+        base_dir = Path(__file__).resolve().parent.parent
+        input_image_path = base_dir / "zoeaapi" / "cv_app" / "to_detect" / filename
 
-    # Encode the image as JPEG
-    success, buffer = cv2.imencode('.jpg', img)
-    if not success:
-        return JsonResponse({"error": "Failed to encode the image"}, status=500)
 
-    return FileResponse(BytesIO(buffer), content_type='image/jpeg')
+        if not input_image_path.exists():
+            return JsonResponse({"error": "Uploaded file not found"}, status=404)
 
+        # Perform object detection
+        count_data = TFLite_detection_image.object_detect(0.3, str(input_image_path))
+
+        return JsonResponse({"count_data": count_data, "processed_image_url": "/api/get_processed_image/"}, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_processed_image(request):
+    """
+    Returns the URL of the processed image along with the latest batch.
+    """
+    # Retrieve the latest batch from ZoeaTable
+    latest_entry = ZoeaTable.objects.aggregate(latest_batch=Max("batch"))
+    latest_batch = latest_entry.get("latest_batch", None)
+
+    # Define the relative path to the processed image
+    relative_image_path = "results/a.jpg"
+
+    # Construct the absolute file path
+    base_dir = Path(__file__).resolve().parent.parent
+    output_image_path = base_dir / "zoeaapi" / "cv_app" / relative_image_path
+
+    if not output_image_path.exists():
+        return JsonResponse({"error": "Processed image not found"}, status=404)
+
+    # Construct the URL where the image can be accessed
+    image_url = f"{request.scheme}://{request.get_host()}/{relative_image_path}"
+
+    return JsonResponse({
+        "imageUrl": image_url,
+        "latestBatch": latest_batch
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def post_new_entry(request):
+    # Extract form data
+    batch = request.data.get('batch')
+    age = request.data.get('age')
+    megalopa_datestamp = request.data.get('megalopa_datestamp')
+    count_data = request.data.get('count_data')
+    captured_by = request.data.get('captured_by')
+    datestamp = request.data.get('datestamp')
+    timestamp=request.data.get('timestamp')
+    
+    # Extract and validate the image
+    img_blob = request.FILES.get('img_blob')
+    if not img_blob:
+        return Response({'error': 'Image is required'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Create a new entry
+    entry = ZoeaTable.objects.create(
+        batch=batch,
+        img_blob=img_blob,
+        datestamp=datestamp,
+        timestamp=timestamp,
+        age=age,
+        megalopa_datestamp=megalopa_datestamp,
+        count_data=count_data,
+        captured_by=captured_by
+    )
+
+    # Serialize and return the response
+    serializer = ZoeaTableSerializer(entry)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# @api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+# def img_inference(request):
+#     """
+#     Perform object detection on the most recently uploaded image and return the processed image.
+#     """
+#     try:
+
+#         filename = request.data.get("filename")
+#         if not filename:
+#             return JsonResponse({"error": "Filename not provided"}, status=400)
+
+
+#         # Define full paths
+
+
+#         # Check if the uploaded file exists
+#         if not input_image_path.exists():
+#             return JsonResponse({"error": "Uploaded file not found"}, status=404)
+
+#         # Perform object detection
+#         count_data = TFLite_detection_image.object_detect(0.3, str(input_image_path))
+
+#          # Ensure processed image exists
+#         if not output_image_path.exists():
+#             return JsonResponse({"error": "Processed image not found"}, status=500)
+
+#         # Load the processed image
+#         img = cv2.imread(str(output_image_path))
+#         if img is None:
+#             return JsonResponse({"error": "Failed to load the image"}, status=400)
+
+#         # Encode the image as JPEG
+#         success, buffer = cv2.imencode('.jpg', img)
+#         if not success:
+#             return JsonResponse({"error": "Failed to encode the image"}, status=500)
+
+#         # Return the processed image
+#         return FileResponse(BytesIO(buffer), content_type="image/jpeg")
+
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+    
 # @api_view(['GET'])
 # def video_feed(request):
 #     return StreamingHttpResponse(generate_frames(), content_type='multipart/x-mixed-replace; boundary=frame')
 
-# @api_view(['GET', 'PUT', 'DELETE'])
-# def zoea_entry_func(request, pk):
-#     try:
-#         zoea_entry = ZoeaTable.objects.get(pk=pk)
-#     except zoea_entry.DoesNotExist:
-#         return Response(status=status.HTTP_404_NOT_FOUND)
-#
-#     if request.method == 'GET':
-#         serializer = ZoeaTableSerializer(zoea_entry)
-#         return Response(serializer.data)
-#
-#     elif request.method == 'PUT':
-#         serializer = ZoeaTableSerializer(zoea_entry, data=request.data)
-#     if serializer.is_valid():
-#         serializer.save()
-#         return Response(serializer.data)
-#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

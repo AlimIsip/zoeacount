@@ -14,10 +14,8 @@
 
 # Import packages
 import os
-import argparse
 import cv2
 import numpy as np
-import sys
 import glob
 import importlib.util
 
@@ -174,3 +172,5 @@ def object_detect(threshold, image):
             with open(txt_savepath,'w') as f:
                 for detection in detections:
                     f.write('%s %.4f %d %d %d %d\n' % (detection[0], detection[1], detection[2], detection[3], detection[4], detection[5]))
+        
+        return count_data

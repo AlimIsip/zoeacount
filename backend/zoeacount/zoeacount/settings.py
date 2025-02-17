@@ -139,6 +139,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 MEDIA_URL = "/media/"
 
+RESULTS_ROOT = BASE_DIR / "zoeaapi" / "cv_app" / "results"
+
+RESULTS_URL = "/results/"
+
 # Authentication
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
