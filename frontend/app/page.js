@@ -67,7 +67,7 @@ export default async function Home() {
           </div>
 
           <div className="flex flex-col col-span-2 grow ">
-                      <Card
+            <Card
               title={dashboard_data.count_data}
               description={"Latest Count"}
             />

@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Header({ isActive, user }) {
   return (
-    <div className="sticky top-0 flex align-middle bg-sky-950 p-5 h-14">
+    <div className="sticky top-0 flex align-middle bg-sky-950 p-5 h-14 z-50">
       <div className="flex-auto h-18 flex items-center justify-between">
         <Link href="/">
           <p className="text-4xl text-amber-400"> zoeacount </p>

@@ -17,13 +17,11 @@ export default function Card({
   imgSrc,
   chartData,
   dataColumn,
-  children
+  children,
 }) {
   return (
-    <div>
-      <div
-        className="block
-        flex-wrap
+    <div
+      className="block
         flex-grow
         px-2
         py-3
@@ -32,43 +30,41 @@ export default function Card({
         shadow-sm
         bg-slate-300
         "
-      >
-        {children}
-        {/* Image */}
-        {imgSrc && <img src={imgSrc} />}
-        {/* Description */}
-        {chartData && dataColumn && (
-            <ChartLine chartData={chartData} dataColumn={dataColumn} />
-        )}
+    >
+      {children}
+      {/* Image */}
+      {imgSrc && <img src={imgSrc} />}
+      {/* Description */}
+      {chartData && dataColumn && (
+        <ChartLine chartData={chartData} dataColumn={dataColumn} />
+      )}
 
-        {/* Title */}
-        {title && (
-          <h5
-            className=" 
+      {/* Title */}
+      {title && (
+        <h5
+          className=" 
             text-5xl 
             text-center 
             font-bold 
             tracking-tight
             text-gray-900
            "
-          >
-            {title}
-          </h5>
-        )}
+        >
+          {title}
+        </h5>
+      )}
 
-        {/* Description */}
-        {description && (
-          <p
-            className="font-normal 
+      {/* Description */}
+      {description && (
+        <p
+          className="font-normal 
             text-center 
             text-gray-900 
           "
-          >
-            {description}
-          </p>
-        )}
-        
-      </div>
+        >
+          {description}
+        </p>
+      )}
     </div>
   );
 }
@@ -92,13 +88,11 @@ export function ChartLine({ chartData, dataColumn }) {
       <LineChart data={data} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
         <Line type="monotone" dataKey="uv" stroke="#8884d8" />
         <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
-        <XAxis tick={{ fontSize: 12 ,}}/>
-        <YAxis tick={{ fontSize: 12}} width={40}/>
+        <XAxis tick={{ fontSize: 12 }} />
+        <YAxis tick={{ fontSize: 12 }} width={40} />
         <Tooltip />
       </LineChart>
     </ResponsiveContainer>
   );
   return renderLineChart;
 }
-
-
