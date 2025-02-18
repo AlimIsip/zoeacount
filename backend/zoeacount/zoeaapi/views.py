@@ -24,7 +24,8 @@ import os
 from io import BytesIO
 import base64
 import cv2
-from .cv_app import TFLite_detection_image
+from zoeaapi.cv_app.TFLite_detection_image import slice_image, detect_objects_tflite, reconstruct_image
+
 
 User = get_user_model()
 
@@ -133,6 +134,7 @@ def upload_raw_img(request):
 def img_inference(request):
     """
     Perform object detection and return the count data.
+    Streams logs while processing.
     """
     try:
         filename = request.data.get("filename")
@@ -142,18 +144,34 @@ def img_inference(request):
         base_dir = Path(__file__).resolve().parent.parent
         input_image_path = base_dir / "zoeaapi" / "cv_app" / "to_detect" / filename
 
-
         if not input_image_path.exists():
             return JsonResponse({"error": "Uploaded file not found"}, status=404)
 
-        # Perform object detection
-        count_data = TFLite_detection_image.object_detect(0.3, str(input_image_path))
+        slices_folder = base_dir / "zoeaapi" / "cv_app" / "slices"
+        output_image_path = base_dir / "zoeaapi" / "cv_app" / "processed" / filename
+        model_path = base_dir / "zoeaapi" / "cv_app" / "custom_model_lite" / "detect.tflite"
+        label_path = base_dir / "zoeaapi" / "cv_app" / "labelmap.txt"
 
-        return JsonResponse({"count_data": count_data, "processed_image_url": "/api/get_processed_image/"}, status=200)
+        def inference_logs():
+            yield f"[INFO] Starting inference for {filename}\n"
+            yield f"[INFO] Slicing image...\n"
+
+            slices = slice_image(str(input_image_path), str(slices_folder))
+            yield f"[INFO] Total slices created: {len(slices)}\n"
+
+            yield f"[INFO] Running object detection on slices...\n"
+            detections = detect_objects_tflite(str(model_path), str(label_path), slices)
+
+            yield f"[INFO] Reconstructing detected objects into final image...\n"
+            reconstruct_image(str(input_image_path), detections, str(output_image_path))
+
+            yield f"[INFO] Inference completed. Processed image saved.\n"
+            yield f'{{"processed_image_url": "/api/get_processed_image/{filename}", "count_data": {len(detections)} }}\n'
+
+        return StreamingHttpResponse(inference_logs(), content_type="text/event-stream")
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -165,11 +183,8 @@ def get_processed_image(request):
     latest_entry = ZoeaTable.objects.aggregate(latest_batch=Max("batch"))
     latest_batch = latest_entry.get("latest_batch", 0)  # Default to 0 if no batch exists
 
-    # Increment the latest batch
-    next_batch = latest_batch + 1
-
     # Define the relative path to the processed image
-    relative_image_path = "results/a.jpg"
+    relative_image_path = f"results/processed_{latest_batch}.jpg"
 
     # Construct the absolute file path
     base_dir = Path(__file__).resolve().parent.parent
@@ -183,9 +198,8 @@ def get_processed_image(request):
 
     return JsonResponse({
         "imageUrl": image_url,
-        "latestBatch": next_batch  # Send incremented batch number
+        "latestBatch": latest_batch  # Returning the current batch without incrementing
     })
-
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])

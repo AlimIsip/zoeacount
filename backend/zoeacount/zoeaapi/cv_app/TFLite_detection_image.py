@@ -1,176 +1,148 @@
-######## Webcam Object Detection Using Tensorflow-trained Classifier #########
-#
-# Author: Evan Juras
-# Date: 11/11/22
-# Description: 
-# This program uses a TensorFlow Lite object detection model to perform object 
-# detection on an image or a folder full of images. It draws boxes and scores 
-# around the objects of interest in each image.
-#
-# This code is based off the TensorFlow Lite image classification example at:
-# https://github.com/tensorflow/tensorflow/blob/master/tensorflow/lite/examples/python/label_image.py
-#
-# I added my own method of drawing boxes and labels using OpenCV.
-
-# Import packages
 import os
 import cv2
 import numpy as np
 import glob
-import importlib.util
+import random
+from tensorflow.lite.python.interpreter import Interpreter
+import matplotlib.pyplot as plt
 
-def object_detect(threshold, image):
-# Parse user inputs
-    print("received", threshold, image)
-    MODEL_NAME = "custom_model_lite"
-    GRAPH_NAME = 'detect.tflite'
-    LABELMAP_NAME = 'labelmap.txt'
 
-    min_conf_threshold = float(threshold)
+def slice_image(image_path, output_folder, slice_size=(320, 320), stride=(80, 80)):
+    os.makedirs(output_folder, exist_ok=True)
+    image = cv2.imread(image_path)
+    h, w, _ = image.shape
+    slice_w, slice_h = slice_size
+    stride_w, stride_h = stride
+    slice_count = 0
+    slices = []
 
-    save_results = True
+    total_slices = ((h - slice_h) // stride_h + 1) * ((w - slice_w) // stride_w + 1)
+    print(f"[INFO] Total slices to be processed: {total_slices}")
 
-    IM_NAME = image
+    print(f"[INFO] Slicing image: {image_path} ({w}x{h}) with stride {stride_w}x{stride_h}")
 
-    # Import TensorFlow libraries
-    # If tflite_runtime is installed, import interpreter from tflite_runtime, else import from regular tensorflow
-    # If using Coral Edge TPU, import the load_delegate library
-    pkg = importlib.util.find_spec('tflite_runtime')
-    if pkg:
-        from tflite_runtime.interpreter import Interpreter
-    else:
-        from tensorflow.lite.python.interpreter import Interpreter
+    for y in range(0, h - slice_h + 1, stride_h):
+        for x in range(0, w - slice_w + 1, stride_w):
+            slice_img = image[y:y + slice_h, x:x + slice_w]
+            slice_filename = os.path.join(output_folder, f'slice_{slice_count}_{x}_{y}.jpg')
+            cv2.imwrite(slice_filename, slice_img)
+            slices.append((slice_filename, x, y))
+            print(f"[INFO] Saved slice {slice_count}: {slice_img.shape}")
+            slice_count += 1
 
-    # Get path to current working directory
-    CWD_PATH = os.getcwd()
+    return slices
 
-    # Define path to images and grab all image filenames
-    if IM_NAME:
-        PATH_TO_IMAGES = os.path.join(CWD_PATH,"zoeaapi","cv_app", IM_NAME)
-        images = glob.glob(PATH_TO_IMAGES)
-        if save_results:
-            RESULTS_DIR = 'results'
 
-    # Create results directory if user wants to save results
-    if save_results:
-        RESULTS_PATH = os.path.join(CWD_PATH,"zoeaapi","cv_app",RESULTS_DIR)
-        if not os.path.exists(RESULTS_PATH):
-            os.makedirs(RESULTS_PATH)
+def apply_nms(boxes, scores, overlap_threshold=0.5):
+    indices = cv2.dnn.NMSBoxes(boxes, scores, score_threshold=0.5, nms_threshold=overlap_threshold)
+    return indices.flatten() if len(indices) > 0 else []
 
-    # Path to .tflite file, which contains the model that is used for object detection
-    PATH_TO_CKPT = os.path.join(CWD_PATH,"zoeaapi","cv_app",MODEL_NAME, GRAPH_NAME)
 
-    # Path to label map file
-    PATH_TO_LABELS = os.path.join(CWD_PATH,"zoeaapi","cv_app", MODEL_NAME, LABELMAP_NAME)
-
-    # Load the label map
-    with open(PATH_TO_LABELS, 'r') as f:
+def detect_objects_tflite(model_path, label_path, image_slices, min_conf=0.5, max_size=100, max_area_ratio=0.03,
+                          max_aspect_ratio=1.18, min_aspect_ratio=0.05, max_box_size=50):
+    with open(label_path, 'r') as f:
         labels = [line.strip() for line in f.readlines()]
 
-    # Have to do a weird fix for label map if using the COCO "starter model" from
-    # https://www.tensorflow.org/lite/models/object_detection/overview
-    # First label is '???', which has to be removed.
-    if labels[0] == '???':
-        del(labels[0])
-
-    # Load the Tensorflow Lite model.
-    # If using Edge TPU, use special load_delegate argument
-    interpreter = Interpreter(model_path=PATH_TO_CKPT)
-
+    interpreter = Interpreter(model_path=model_path)
     interpreter.allocate_tensors()
 
-    # Get model details
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-    height = input_details[0]['shape'][1]
-    width = input_details[0]['shape'][2]
+    height, width = input_details[0]['shape'][1:3]
+    float_input = input_details[0]['dtype'] == np.float32
 
-    floating_model = (input_details[0]['dtype'] == np.float32)
+    detections_data = []
+    total_detected_larvae = 0
 
-    input_mean = 127.5
-    input_std = 127.5
+    unique_detections = {}
 
-    # Check output layer name to determine if this model was created with TF2 or TF1,
-    # because outputs are ordered differently for TF2 and TF1 models
-    outname = output_details[0]['name']
-
-    if ('StatefulPartitionedCall' in outname): # This is a TF2 model
-        boxes_idx, classes_idx, scores_idx = 1, 3, 0
-    else: # This is a TF1 model
-        boxes_idx, classes_idx, scores_idx = 0, 1, 2
-
-
-    count_data=[]
-
-    # Loop over every image and perform detection
-    for image_path in images:
-
-        # Load image and resize to expected shape [1xHxWx3]
+    for image_path, offset_x, offset_y in image_slices:
         image = cv2.imread(image_path)
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         imH, imW, _ = image.shape
         image_resized = cv2.resize(image_rgb, (width, height))
         input_data = np.expand_dims(image_resized, axis=0)
 
-        # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
-        if floating_model:
-            input_data = (np.float32(input_data) - input_mean) / input_std
+        if float_input:
+            input_data = (np.float32(input_data) - 127.5) / 127.5
 
-        # Perform the actual detection by running the model with the image as input
-        interpreter.set_tensor(input_details[0]['index'],input_data)
+        interpreter.set_tensor(input_details[0]['index'], input_data)
         interpreter.invoke()
 
-        # Retrieve detection results
-        boxes = interpreter.get_tensor(output_details[boxes_idx]['index'])[0] # Bounding box coordinates of detected objects
-        classes = interpreter.get_tensor(output_details[classes_idx]['index'])[0] # Class index of detected objects
-        scores = interpreter.get_tensor(output_details[scores_idx]['index'])[0] # Confidence of detected objects
+        boxes = interpreter.get_tensor(output_details[1]['index'])[0]
+        classes = interpreter.get_tensor(output_details[3]['index'])[0]
+        scores = interpreter.get_tensor(output_details[0]['index'])[0]
 
-        detections = []
+        valid_boxes = []
+        valid_scores = []
+        valid_classes = []
 
-        # Loop over all detections and draw detection box if confidence is above minimum threshold
         for i in range(len(scores)):
-            if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
+            if scores[i] > min_conf:
+                ymin, xmin, ymax, xmax = boxes[i]
+                xmin, xmax = int(xmin * imW) + offset_x, int(xmax * imW) + offset_x
+                ymin, ymax = int(ymin * imH) + offset_y, int(ymax * imH) + offset_y
 
-                # Get bounding box coordinates and draw box
-                # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
-                ymin = int(max(1,(boxes[i][0] * imH)))
-                xmin = int(max(1,(boxes[i][1] * imW)))
-                ymax = int(min(imH,(boxes[i][2] * imH)))
-                xmax = int(min(imW,(boxes[i][3] * imW)))
+                box_width = xmax - xmin
+                box_height = ymax - ymin
+                box_area = box_width * box_height
+                image_area = imW * imH
+                aspect_ratio = box_width / max(box_height, 1)
 
-                cv2.rectangle(image, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
+                if (scores[i] * 100) >  100 or (box_area / image_area) > max_area_ratio or aspect_ratio > max_aspect_ratio or aspect_ratio < min_aspect_ratio or box_width > max_box_size or box_height > max_box_size:
+                    continue
 
-                # Draw label
-                object_name = labels[int(classes[i])] # Look up object name from "labels" array using class index
-                label = '%s: %d%%' % (object_name, int(scores[i]*100)) # Example: 'person: 72%'
-                labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2) # Get font size
-                label_ymin = max(ymin, labelSize[1] + 10) # Make sure not to draw label too close to top of window
-                cv2.rectangle(image, (xmin, label_ymin-labelSize[1]-10), (xmin+labelSize[0], label_ymin+baseLine-10), (255, 255, 255), cv2.FILLED) # Draw white box to put label text in
-                cv2.putText(image, label, (xmin, label_ymin-7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2) # Draw label text
+                detection_tuple = (xmin, ymin, xmax, ymax)
+                duplicate = False
+                for existing in unique_detections:
+                    ex_xmin, ex_ymin, ex_xmax, ex_ymax = existing
+                    if abs(ex_xmin - xmin) <= 10 and abs(ex_ymin - ymin) <= 10 and abs(ex_xmax - xmax) <= 10 and abs(
+                            ex_ymax - ymax) <= 10:
+                        duplicate = True
+                        break
 
-                detections.append([object_name, scores[i], xmin, ymin, xmax, ymax])
-                count_data += 1
+                if not duplicate:
+                    unique_detections[detection_tuple] = scores[i]
+                    valid_boxes.append([xmin, ymin, xmax, ymax])
+                    valid_scores.append(scores[i])
+                    valid_classes.append(labels[int(classes[i])])
 
-        # Save the labeled image to results folder if desired
-        if save_results:
+        indices = apply_nms(valid_boxes, valid_scores, overlap_threshold=0.5)
+        final_detections = [(valid_classes[i], valid_scores[i], *valid_boxes[i]) for i in indices]
 
-            # Get filenames and paths
-            image_fn = os.path.basename(image_path)
-            print(image_fn)
-            image_savepath = os.path.join(CWD_PATH,"zoeaapi","cv_app", RESULTS_DIR,image_fn)
-            print(image_savepath)
+        total_detected_larvae += len(final_detections)
+        detections_data.extend(final_detections)
 
-            base_fn, ext = os.path.splitext(image_fn)
-            txt_result_fn = base_fn +'.txt'
-            txt_savepath = os.path.join(CWD_PATH,"zoeaapi","cv_app", RESULTS_DIR,txt_result_fn)
+        print(f"[INFO] Slice {image_path} - Detected {len(final_detections)} larvae")
 
-            # Save image
-            cv2.imwrite(image_savepath, image)
+    print(f"[INFO] Total detected larvae: {total_detected_larvae}")
+    return detections_data
 
-            # Write results to text file
-            # (Using format defined by https://github.com/Cartucho/mAP, which will make it easy to calculate mAP)
-            with open(txt_savepath,'w') as f:
-                for detection in detections:
-                    f.write('%s %.4f %d %d %d %d\n' % (detection[0], detection[1], detection[2], detection[3], detection[4], detection[5]))
-        
-        return count_data
+
+def reconstruct_image(original_image_path, detections, output_path):
+    image = cv2.imread(original_image_path)
+
+    print("[INFO] Reconstructing final image with detections")
+    for obj_name, score, xmin, ymin, xmax, ymax in detections:
+        cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (10, 255, 0), 1)
+        label = f'{int(score * 100)}%'
+        cv2.putText(image, label, (xmin, ymin - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1)
+
+    cv2.imwrite(output_path, image)
+    print(f"[INFO] Final image saved to {output_path}")
+
+
+# # Example Usage
+# input_image = "images/sample/0a34f18d-image_118.jpg"
+# slices_folder = "slices"
+# detections_folder = "detections"
+# final_image_path = "output.jpg"
+#
+# slices = slice_image(input_image, slices_folder)
+# detections = detect_objects_tflite("custom_model_lite/detect.tflite", "labelmap.txt", slices)
+# reconstruct_image(input_image, detections, final_image_path)
+
+#
+# input_image = "images/sample/0a34f18d-image_118.jpg"
+# def detect_objects_tflite(model_path, label_path, image_slices, min_conf=0.5, max_size=100, max_area_ratio=0.03,
+#                           max_aspect_ratio=1.18, min_aspect_ratio=0.05, max_box_size=30):
