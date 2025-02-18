@@ -159,11 +159,14 @@ def img_inference(request):
 @permission_classes([IsAuthenticated])
 def get_processed_image(request):
     """
-    Returns the URL of the processed image along with the latest batch.
+    Returns the URL of the processed image along with the incremented latest batch.
     """
     # Retrieve the latest batch from ZoeaTable
     latest_entry = ZoeaTable.objects.aggregate(latest_batch=Max("batch"))
-    latest_batch = latest_entry.get("latest_batch", None)
+    latest_batch = latest_entry.get("latest_batch", 0)  # Default to 0 if no batch exists
+
+    # Increment the latest batch
+    next_batch = latest_batch + 1
 
     # Define the relative path to the processed image
     relative_image_path = "results/a.jpg"
@@ -180,41 +183,53 @@ def get_processed_image(request):
 
     return JsonResponse({
         "imageUrl": image_url,
-        "latestBatch": latest_batch
+        "latestBatch": next_batch  # Send incremented batch number
     })
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def post_new_entry(request):
-    # Extract form data
-    batch = request.data.get('batch')
-    age = request.data.get('age')
-    megalopa_datestamp = request.data.get('megalopa_datestamp')
-    count_data = request.data.get('count_data')
-    captured_by = request.data.get('captured_by')
-    datestamp = request.data.get('datestamp')
-    timestamp=request.data.get('timestamp')
-    
-    # Extract and validate the image
-    img_blob = request.FILES.get('img_blob')
-    if not img_blob:
-        return Response({'error': 'Image is required'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    # Create a new entry
-    entry = ZoeaTable.objects.create(
-        batch=batch,
-        img_blob=img_blob,
-        datestamp=datestamp,
-        timestamp=timestamp,
-        age=age,
-        megalopa_datestamp=megalopa_datestamp,
-        count_data=count_data,
-        captured_by=captured_by
-    )
+    print("Received data:", request.data)  # Debugging line
+    print("Received files:", request.FILES)  # Debugging line
+    try:
+        # Extract form data
+        batch = request.data.get("batch")
+        age = request.data.get("age")
+        megalopa_datestamp = request.data.get("megalopa_datestamp")
+        count_data = request.data.get("count_data")
+        captured_by = request.data.get("captured_by")
+        datestamp = request.data.get("datestamp")
+        timestamp = request.data.get("timestamp")
 
-    # Serialize and return the response
-    serializer = ZoeaTableSerializer(entry)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # Validate required fields
+        if not all([batch, age, datestamp, timestamp, count_data, captured_by]):
+            return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Extract and validate the image
+        img_blob = request.FILES.get("img_blob")
+        if not img_blob:
+            return Response({"error": "Image is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a new entry
+        entry = ZoeaTable.objects.create(
+            batch=batch,
+            img_blob=img_blob,
+            datestamp=datestamp,
+            timestamp=timestamp,
+            age=age,
+            megalopa_datestamp=megalopa_datestamp,
+            count_data=count_data,
+            captured_by=captured_by,
+        )
+
+        # Serialize and return the response
+        serializer = ZoeaTableSerializer(entry)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 # @api_view(["POST"])
 # @permission_classes([IsAuthenticated])
