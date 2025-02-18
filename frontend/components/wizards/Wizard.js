@@ -53,10 +53,8 @@ export default function Wizard() {
         setError(inferenceResults?.error || "Inference failed");
         return;
     }
-    // imageUrl: imageData.imageUrl,
-    //         batchData: imageData.latestBatch,
-    //         captureDate: captureDate, 
-    //         captureTime: captureTime,
+  
+
 
     setCountData(inferenceResults.countData);
     setImageUrl(inferenceResults.imageUrl);

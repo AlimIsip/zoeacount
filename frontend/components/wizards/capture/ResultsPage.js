@@ -8,6 +8,9 @@ import {
   Button,
 } from "@heroui/react";
 import { useState, useEffect } from "react";
+import { postNewEntry } from "@/lib/datapostput";
+import { getUser} from "@/lib/sessiondetails"
+
 
 export default function ResultsPage({
   countData,
@@ -24,45 +27,39 @@ export default function ResultsPage({
   const [captureTimeValue, setCaptureTimeValue] = useState(captureTime); // Capture time value
   const [submitted, setSubmitted] = useState(null);
   const [errors, setErrors] = useState({});
+ 
   const onSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-
-    // Append the 'captured_by' field asynchronously
-    const capturedBy = await getUser();
-    formData.append('captured_by', capturedBy);
-
-    // Fetch the image as a blob and append it to formData
-    const imageUrl = 'http://localhost:8000/results/a.jpg'; // Your image URL
+  
     try {
-        const response = await fetch(imageUrl);
-        const blob = await response.blob();
-        formData.append('img_blob', blob, 'a.jpg'); // Append the image with filename
+      // Append the 'captured_by' field asynchronously
+      const capturedBy = await getUser();
+      formData.append("captured_by", capturedBy);
+  
+      // Fetch the image as a blob and append it to formData
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      formData.append("img_blob", blob, "a.jpg"); // Append the image with filename
+  
+      // Send FormData to the API
+      const result = await postNewEntry(formData);
+      
+      // Clear errors and update the state with the response
+      setErrors({});
+      setSubmitted(result);
+  
+      console.log("Successfully posted:", result);
     } catch (error) {
-        console.error('Error fetching image:', error);
+      console.error("Submission Error:", error);
+      setErrors({ general: error.message });
     }
+  };
+  
 
-    // Convert formData to object for local state updates (if needed)
-    const data = Object.fromEntries(formData.entries());
-
-    // Clear errors and submit
-    setErrors({});
-    setSubmitted(data); // Update the state with submitted data
-
-    // Example: Send the formData to an API
-    /*
-    fetch('http://your-api-endpoint.com/upload', {
-        method: 'POST',
-        body: formData
-    });
-    */
-};
-  const appendData = async () => {
-    const capturedBy = await getUser();
-
-
-
-  }
 
   // Function to calculate the expected Megalopa date
   const calculateMegalopaDate = (age) => {
@@ -122,7 +119,7 @@ export default function ResultsPage({
             validationErrors={errors}
             onReset={() => setSubmitted(null)}
             onSubmit={onSubmit}
-          ></Form>
+          >
             {/* Capture Date Input */}
             <Input
               name={"datestamp"}
@@ -149,6 +146,7 @@ export default function ResultsPage({
 
             {/* Count Data Input */}
             <Input
+              isRequired
               name={"count_data"}
               className={"p-2 font-bold"}
               label="Count Data:"
@@ -172,6 +170,7 @@ export default function ResultsPage({
 
             {/* Age Input */}
             <Input
+            
               name={"age"}
               isRequired
               className={"p-2 font-bold"}
@@ -186,6 +185,7 @@ export default function ResultsPage({
 
             {/* Expected Megalopa Date */}
             <Input
+              isRequired
               name={"megalopa_datestamp"}
               isReadOnly
               className={"p-2 font-bold"}
@@ -209,7 +209,7 @@ export default function ResultsPage({
             >
               Recapture and Recount
             </Button>
- <Form/>
+ </Form>
         </div>
       </div>
     </div>
