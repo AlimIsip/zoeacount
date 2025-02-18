@@ -6,13 +6,12 @@ export default async function timeline() {
   const columns = [
     { name: "ID", uid: "id" },
     { name: "IMAGE", uid: "img_blob" },
-    { name: "AGE", uid: "age" },
-    { name: "PHASE", uid: "phase" },
+    { name: "BATCH", uid: "batch" },
+    { name: "AGE ON CAPTURE", uid: "age" },
     { name: "DATE", uid: "datestamp" },
     { name: "TIME", uid: "timestamp" },
     { name: "COUNT DATA", uid: "count_data" },
-    { name: "MORTALITY", uid: "mortality_rate" },
-    { name: "CUMULATIVE MORTALITY", uid: "cumulative_mortality_rate" },
+    { name: "EXPECTED MEGALOPA DATE", uid: "megalopa_datestamp" },
     { name: "CAPTURED BY", uid: "captured_by" },
   ];
 

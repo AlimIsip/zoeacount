@@ -10,37 +10,37 @@ import {
   TableCell,
   Pagination,
 } from "@heroui/react";
-import BatchDropdown from '@/components/buttons/BatchDropdown';
+// import BatchDropdown from '@/components/buttons/BatchDropdown';
 
 export default function App({ columns, timeline_data }) {
   
   // States for Batch Dropdown Filter and Pagination
-    const [page, setPage] = useState(1);
-  const [selectedBatch, setSelectedBatch] = useState(timeline_data[0].batch);
-  const [filteredData, setFilteredData] = useState(timeline_data.filter((entry) => entry.batch === selectedBatch));
+  const [page, setPage] = useState(1);
+  // const [selectedBatch, setSelectedBatch] = useState(timeline_data[0].batch);
+  // const [filteredData, setFilteredData] = useState(timeline_data.filter((entry) => entry.batch === selectedBatch));
   
 
  //Batch Dropdown functions 
-  function updateTable(batchNum) {
-    setSelectedBatch(batchNum);
-  }
-  useEffect(() => {
-    const data = timeline_data.filter((entry) => entry.batch === selectedBatch);
-    setFilteredData(data);
-    setPage(1);
-  }, [selectedBatch]);
+  // function updateTable(batchNum) {
+  //   setSelectedBatch(batchNum);
+  // }
+  // useEffect(() => {
+  //   const data = timeline_data.filter((entry) => entry.batch === selectedBatch);
+  //   setFilteredData(data);
+  //   setPage(1);
+  // }, [selectedBatch]);
 
 
   //Pagination
   const rowsPerPage = 7;
-  const pages = Math.ceil(filteredData.length / rowsPerPage);
+  const pages = Math.ceil(timeline_data.length / rowsPerPage);
 
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
 
-    return filteredData.slice(start, end);
-  }, [page, filteredData]);
+    return timeline_data.slice(start, end);
+  }, [page, timeline_data]);
 
   const dateOptions = {
     year: "numeric",
@@ -72,9 +72,10 @@ export default function App({ columns, timeline_data }) {
 
   return (
     <div>
-         <BatchDropdown timelineData={timeline_data} updateTable={updateTable} />
+         {/* <BatchDropdown timelineData={timeline_data} updateTable={updateTable} /> */}
       <Table
-      aria-label="Example table with client side pagination"
+      aria-label="Zoea Table"
+      className="py-5 px-52"
       bottomContent={
         <div className="flex w-full justify-center">
           <Pagination
