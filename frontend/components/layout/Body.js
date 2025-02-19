@@ -2,7 +2,7 @@
 
 export default function Body({children}) {
     return (
-        <div className="flex flex-wrap mx-24 bg-cyan-100">
+        <div className="flex flex-wrap mx-16 bg-sky-600">
             {children}
         </div>
     )

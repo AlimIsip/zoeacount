@@ -1,104 +1,146 @@
 import Body from "../components/layout/Body";
 import Card from "../components/containers/Card";
 import { fetchDashboardData, fetchChartData } from "@/lib/data";
-import { phaseTimelineChart } from "@/components/containers/CardContent";
+import { phaseTimelineChart, megalopaTimelineChart } from "@/components/containers/CardContent";
 
 export default async function Home() {
   const dashboard_data = await fetchDashboardData();
   const chart_data = await fetchChartData();
-  console.log("charttttt", chart_data);
-  function nextPhaseDays() {
-    return dashboard_data.phase * 4 - dashboard_data.age;
+
+  function formatDate() {
+    const date = new Date(dashboard_data.datestamp);
+    // date.setDate(date.getDate() + days);
+    return date.toLocaleDateString("en-GB", {
+      month: "short",
+      day: "numeric",
+      year: "2-digit",
+    });
+  }
+  function formatDateRange(dateRange) {
+    const [start, end] = dateRange.split(" - ").map((date) => new Date(date));
+
+    return `${start.toLocaleDateString("en-GB", {
+      month: "short",
+      day: "numeric",
+      year: "2-digit",
+    })} - ${end.toLocaleDateString("en-GB", {
+      month: "short",
+      day: "numeric",
+      year: "2-digit",
+    })}`;
   }
 
-  function nextPhaseDate() {
-    Date.prototype.addDays = function (days) {
-      var date = new Date(this.valueOf());
-      date.setDate(date.getDate() + days);
-      return date;
-    };
+  const dateRange = "3/6/2025 - 3/9/2025";
+  console.log(formatDateRange(dateRange)); // Output: "6 Mar 25 - 9 Mar 25"
 
-    const entry_date = new Date(dashboard_data.timestamp);
-    const next_phase_date = entry_date.addDays(nextPhaseDays());
-    const options = { month: "short", day: "numeric" };
-    return next_phase_date.toLocaleDateString("en-GB", options);
+  function computeCurrentAge(datestamp, age) {
+    const captureDate = new Date(datestamp);
+    const hatchDate = new Date(captureDate);
+    hatchDate.setDate(captureDate.getDate() - age); // hatch date = capture date - initial age
+
+    const today = new Date();
+    const timeDiff = today - hatchDate; // difference in milliseconds
+    const currentAge = Math.floor(timeDiff / (1000 * 60 * 60 * 24)); // convert to days
+
+    return currentAge;
   }
 
-  function nextMegalopaDays() {
-    return 20 - dashboard_data.age;
+  function getCurrentPhase(currentAge) {
+    const phaseDuration = 3; 
+    const totalPhases = 5; 
+  
+    const phase = Math.min(Math.floor(currentAge / phaseDuration) + 1, totalPhases);
+    
+    return phase;
   }
 
-  function nextMegalopaDate() {
-    Date.prototype.addDays = function (days) {
-      var date = new Date(this.valueOf());
-      date.setDate(date.getDate() + days);
-      return date;
-    };
-
-    const entry_date = new Date(dashboard_data.timestamp);
-    const next_phase_date = entry_date.addDays(nextMegalopaDays());
-    const options = { month: "short", day: "numeric" };
-    return next_phase_date.toLocaleDateString("en-GB", options);
+  function getDaysUntilNextPhase(currentAge) {
+    const phaseDuration = 3;
+    const remainingDays = phaseDuration - (currentAge % phaseDuration);
+  
+    return remainingDays === phaseDuration ? 0 : remainingDays; 
   }
+
+  const currAge = computeCurrentAge(dashboard_data.datestamp, dashboard_data.age)
+  const currentPhase = getCurrentPhase(currAge)
+  const daysLeftUntilNextPhase = getDaysUntilNextPhase(currAge)
 
   return (
-    <div>
+    <div className="bg-sky-800 p-3 flex justify-center items-center">
       <Body>
-        <div className="grid grid-cols-5 grid-flow gap-2 px-14 py-3">
-          <div className="col-span-5 flex">
-            <h1 className="text-4xl flex-auto">Dashboard</h1>
-          </div>
-          <div className="col-span-3 row-span-2">
+        <div className="grid grid-cols-4 gap-2 px-8 py-4">
+          <h1 className="text-4xl font-semibold col-span-4 text-darkblue">
+            Dashboard
+          </h1>
+
+          {/* Latest Capture */}
+          <div className="col-span-2">
             <Card
               imgSrc={dashboard_data.img_blob}
               description={"Latest capture"}
             />
-          </div>
-          
-          <div className="flex flex-col grow">
-          <Card
-              title={"Batch 3"}
-            />
-          </div>
-          <div className="flex flex-col grow">
-             <Card
-              title={"Day 3"}
-            />
+            <div className="flex">
+              <div className="flex-col flex-grow">
+                <Card description={"Current Phase Timeline"}>
+                  {phaseTimelineChart(5, daysLeftUntilNextPhase)}
+                </Card>
+              </div>
+              <div className="flex-col flex-grow">
+                <Card description={"Days until next phase"}>
+                  {phaseTimelineChart(3,1)}
+                </Card>
+              </div>
+            </div>
+            <Card description={"Days until megalopa phase"}>
+              {megalopaTimelineChart(computeCurrentAge(dashboard_data.datestamp, dashboard_data.age))}
+            </Card>
           </div>
 
-          <div className="flex flex-col col-span-2 grow ">
+          {/* Batch, Day, Count Data, Latest Count Date, Expected Megalopa Date */}
+          <div className="col-span-2 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Card
+                title={`Batch ${dashboard_data.batch}`}
+                className="text-lg font-medium"
+              />
+              <Card
+                title={`Day ${computeCurrentAge(
+                  dashboard_data.datestamp,
+                  dashboard_data.age
+                )}`}
+                className="text-lg font-medium"
+              />
+            </div>
+            <div className="flex">
+              <div className="flex-col flex-grow">
+                <Card
+                  title={dashboard_data.count_data}
+                  description={"Latest Count"}
+                />
+              </div>
+              <div className="flex-col flex-grow">
+                <Card
+                  title={formatDate(dashboard_data.datestamp)}
+                  description={"Latest Count Date"}
+                />
+              </div>
+              <div className="flex-col flex-grow">
+                <Card
+                  title={formatDateRange(dashboard_data.megalopa_datestamp)}
+                  description={"Expected Megalopa Date"}
+                />
+              </div>
+            </div>
+
             <Card
-              title={dashboard_data.count_data}
-              description={"Latest Count"}
-            />
-             <Card
               chartData={chart_data}
               dataColumn={"count data"}
               description={"Count Data"}
             />
-            <Card
-              title={"January 1, 2025"}
-              description={"Latest Count Date"}
-            />
-             
-            
           </div>
-  
-          <div className="col-span-3">
-            <Card description={"Current Phase Timeline"}>
-              {phaseTimelineChart(5, 3)}
-            </Card>
-            <Card description={"Days passed before the next phase"}>
-              {phaseTimelineChart(4, 3)}
-            </Card>
-            <Card description={"Days passed before megalopa phase"}>
-              {phaseTimelineChart(20, 3)}
-            </Card>
-          </div>
-          <div className="col-span-2">
-            <Card title={"February 1, 2024"} description={"Expected Megalopa Date"}/>
-          </div>
-          
+
+          {/* Phase Timeline */}
+          <div className="col-span-4 space-y-4"></div>
         </div>
       </Body>
     </div>

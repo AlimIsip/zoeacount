@@ -71,7 +71,8 @@ export async function fetchUsersData() {
     const data = await fetchWithAuth('http://127.0.0.1:8000/api/users');
     const users_data = await data.json();
     // console.log('Data fetch completed after 3 seconds.');
-
+    console.log(users_data);
+    
     return users_data;
   } catch (error) {
     console.error("Database Error:", error);

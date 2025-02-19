@@ -4,41 +4,56 @@ import Link from "next/link";
 
 export default function Header({ isActive, user }) {
   return (
-    <div className="sticky top-0 flex align-middle bg-sky-950 p-5 h-14 z-50">
-      <div className="flex-auto h-18 flex items-center justify-between">
-        <Link href="/">
-          <p className="text-4xl text-amber-400"> zoeacount </p>
-        </Link>
-      </div>
+    <header className="sticky top-0 flex items-center bg-sky-950 px-6 py-3 h-16 z-50 shadow-md">
+      {/* Logo */}
+      <Link href="/" className="text-3xl text-amber-400 font-bold">
+        zoeacount
+      </Link>
 
-      <div className="flex-none h-18 px-5 flex items-center justify-between">
-        <Link href="/timeline">
-          <p className="text-4xl text-amber-400"> timeline</p>
-        </Link>
-      </div>
-      
-      <div className="flex-none h-18 px-5 flex items-center justify-between">
-        <Link href="/capture">
-          <p className="text-4xl text-amber-400"> capture </p>
-        </Link>
-      </div>
+      {/* Navigation Links */}
+      <nav className="flex-1 flex justify-center gap-6 hidden md:flex">
+        <NavItem href="/timeline" label="Timeline" />
+        <NavItem href="/capture" label="Capture" />
+      </nav>
 
-      <div className="flex-none pl-4 flex items-center">
+      {/* User Section */}
+      <div className="flex items-center gap-4">
         {isActive ? (
-          <div>
-            <Link href="/logout">
-              <p className="text-2xl text-amber-400 text-right">Welcome, {user} </p>
+          <div className="text-right">
+            <Link
+              href="/profile"
+              className="text-lg text-amber-400 font-medium hover:text-amber-500 transition"
+            >
+              Welcome, {user}
             </Link>
-            <Link href="/logout">
-              <p className="text-1xl text-amber-400 text-right">Log out</p>
+            <Link
+              href="/logout"
+              className="text-sm text-amber-300 hover:text-amber-500 transition block"
+            >
+              Log out
             </Link>
           </div>
         ) : (
-          <Link href="/login">
-            <p className="text-5xl text-amber-400 text-right">log in</p>
+          <Link
+            href="/login"
+            className="text-lg text-amber-400 hover:text-amber-500 transition"
+          >
+            Log in
           </Link>
         )}
       </div>
-    </div>
+    </header>
+  );
+}
+
+// Reusable Nav Item Component
+function NavItem({ href, label }) {
+  return (
+    <Link
+      href={href}
+      className="text-lg text-amber-400 hover:text-amber-500 transition"
+    >
+      {label}
+    </Link>
   );
 }

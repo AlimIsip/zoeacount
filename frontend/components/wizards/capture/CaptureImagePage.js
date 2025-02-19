@@ -1,12 +1,22 @@
-"use client";
-
-import { useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Webcam from "react-webcam";
-import { Button } from "@heroui/react";
-import CaptureIcon from "@/components/icons/CaptureIcon";
-import UploadIcon from "@/components/icons/UploadIcon";
+import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/react";
 
-export default function CaptureImagePage({setCurrentPage}) {
+// Utility function to compare arrays deeply
+const arraysAreEqual = (arr1, arr2) => JSON.stringify(arr1) === JSON.stringify(arr2);
+
+export default function CaptureImagePage({
+  setCurrentPage,
+  setFileName,
+  fileName,
+  onUploadClick,
+  uploading,
+  uploaded,
+  countData,
+  imageUrl,
+  inferenceLogs = [],
+  error,
+}) {
   const videoConstraints = {
     width: 1920,
     height: 1080,
@@ -15,102 +25,146 @@ export default function CaptureImagePage({setCurrentPage}) {
 
   const webcamRef = useRef(null);
   const [imgSrc, setImgSrc] = useState(null);
+  const { isOpen: isLogOpen, onOpen: onLogOpen, onClose: onLogClose } = useDisclosure();
+  const [logs, setLogs] = useState([]);
+  const [processingComplete, setProcessingComplete] = useState(false);
 
-  const capture = useCallback(async () => {
-    let imageSrc = webcamRef.current.getScreenshot({
+  // Capture Image
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current.getScreenshot({
       width: 1920,
       height: 1080,
     });
-    
-    // // Convert the base64 string to a Blob in JPEG format
-    // const base64Data = imageSrc.split(",")[1]; // Remove the data URL prefix
-    // const byteCharacters = atob(base64Data); // Decode base64 to binary
-    // const byteNumbers = new Array(byteCharacters.length);
-    // for (let i = 0; i < byteCharacters.length; i++) {
-    //   byteNumbers[i] = byteCharacters.charCodeAt(i);
-    // }
-    // const byteArray = new Uint8Array(byteNumbers);
-    // const blob = new Blob([byteArray], { type: "image/jpeg" });
-
-    // const formData = new FormData();
-    // formData.append("img_blob", blob, "larvae_image.jpg"); // Send binary data directly
-
-    // await fetch("http://127.0.0.1:8000/api/detect_larva", {
-    //   method: "POST",
-    //   body: formData,
-    // })
-    //   .then((res) => {
-    //     if (!res.ok) {
-    //       throw new Error(`HTTP error! status: ${res.status}`);
-    //     }
-    //     return res.blob(); // Parse the blob response here
-    //   })
-    //   .then((blob) => {
-    //     const imageUrl = URL.createObjectURL(blob);
-    //     imageSrc = imageUrl;
-
-    //     console.log("successful");
-    //   })
-    //   .catch((error) => {
-    //     console.error("Error:", error);
-    //   });
     setImgSrc(imageSrc);
-  }, [setImgSrc]);
+    setLogs(["Image captured successfully."]);
+    setProcessingComplete(false);
+  }, []);
+
+  // Update logs only when inferenceLogs change
+  useEffect(() => {
+    if (!arraysAreEqual(logs, inferenceLogs)) {
+      setLogs(inferenceLogs);
+    }
+  }, [inferenceLogs]);
+
+  
+
+  // Handle image submission
+  const handleSubmit = async () => {
+    if (!imgSrc) return;
+
+    setLogs(["Submitting image for inference..."]);
+    setProcessingComplete(false);
+    onLogOpen(); // Show modal only after submit
+
+    try {
+      await onUploadClick(imgSrc);
+      setLogs((prevLogs) => [...prevLogs, "Image submitted successfully."]);
+    } catch (e) {
+      setLogs((prevLogs) => [...prevLogs, "Error submitting image."]);
+    }
+  };
 
   return (
-    <div className="flex flex-col">
-      <h1 className="flex flex-grow text-3xl font-bold">
-        Select capture method
-      </h1>
-      <div className="flex flex-wrap">
-        <div className="flex flex-grow m-3 bg-slate-500 border-3 items-center place-content-center">
-          <div className="flex h-96 bg-blue-500 border-3">
-            {console.log("image is", imgSrc)}
-            {imgSrc ? (
-              <img src={imgSrc} alt="Screenshot" />
-            ) : (
-              <Webcam
-                className="shrink"
-                audio={false}
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                videoConstraints={videoConstraints}
-                screenshotQuality={1}
-              />
-            )}
-          </div>
+    <div className="flex flex-col items-center space-y-6 p-6 bg-white shadow-md rounded-lg">
+      <h2 className="text-2xl font-semibold text-gray-800">Capture Image</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+        {/* Webcam / Image Preview */}
+        <div className="flex items-center justify-center bg-gray-100 rounded-lg p-4 shadow-inner aspect-[4/3]">
+          {imgSrc ? (
+            <img src={imgSrc} alt="Captured" className="max-h-72 object-contain rounded-md" />
+          ) : (
+            <Webcam
+              className="rounded-lg shadow-lg"
+              audio={false}
+              ref={webcamRef}
+              screenshotFormat="image/jpeg"
+              videoConstraints={videoConstraints}
+              screenshotQuality={1}
+            />
+          )}
         </div>
 
-        <div className="flex flex-grow m-3 bg-slate-500 border-3 items-center place-content-center">
+        {/* Capture Controls */}
+        <div className="flex flex-col items-center justify-center gap-4 p-4 bg-gray-50 rounded-lg shadow">
           {imgSrc ? (
-            <div>
+            <>
               <Button
-                onPress={() => {
-                  setCurrentPage(3);
-                }}
+                onPress={handleSubmit}
+                className="px-5 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition"
               >
                 Submit
               </Button>
               <Button
                 onPress={() => {
-                  setImgSrc(null)
+                  setImgSrc(null);
+                  setLogs([]);
+                  setProcessingComplete(false);
                 }}
+                className="px-5 py-2 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition"
               >
                 Recapture
               </Button>
-            </div>
+            </>
           ) : (
             <Button
-              onPress={() => {
-                capture();
-              }}
+              onPress={capture}
+              className="px-5 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition"
             >
-              Capture photo
+              Capture Photo
             </Button>
           )}
-
         </div>
       </div>
+
+      {/* Inference Logs Modal (Only Opens After Submit) */}
+      <Modal key={logs.length} backdrop={"blur"} isOpen={isLogOpen} onClose={onLogClose}>
+        <ModalContent>
+          {(onLogClose) => (
+            <>
+              <ModalHeader>Inference Logs</ModalHeader>
+              <ModalBody>
+                {uploading ? (
+                  <p>Uploading...</p>
+                ) : uploaded ? (
+                  <>
+                    <p className="text-green-600 font-medium">Upload successful!</p>
+                    <div className="bg-gray-900 text-white p-3 h-40 overflow-y-auto text-sm rounded-lg">
+                      {logs.length > 0 ? logs.map((log, index) => <p key={index}>{log}</p>) : <p>Waiting for inference logs...</p>}
+                    </div>
+
+                    {processingComplete ? (
+                      <p className="text-green-600">Inference successful! Proceeding...</p>
+                    ) : error ? (
+                      <>
+                        <p className="text-red-500">Error: {error}</p>
+                        <Button color="danger" variant="light" onPress={onLogClose}>
+                          Close
+                        </Button>
+                      </>
+                    ) : (
+                      <p>Waiting for inference results...</p>
+                    )}
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-red-500">Upload failed.</p>
+                    <Button color="danger" variant="light" onPress={onLogClose}>
+                      Close
+                    </Button>
+                  </div>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onLogClose}>
+                  Close
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

@@ -1,4 +1,3 @@
-import Body from "@/components/layout/Body";
 import TableTimeline from "@/components/TableTimeline";
 import { fetchTimelineData } from "@/lib/data";
 

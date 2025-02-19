@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-
 import {
   Table,
   TableHeader,
@@ -17,9 +16,10 @@ import {
 
 import DeleteIcon from "./icons/DeleteIcon";
 import EditIcon from "./icons/EditIcon";
-import UserInfoModal from "./modals/UserInfoModal";
 import PasswordIcon from "./icons/PasswordIcon";
+import UserInfoModal from "./modals/UserInfoModal";
 import ChangePasswordModal from "./modals/ChangePasswordModal";
+import RegisterUserModal from "./modals/RegisterUserModal"; // Import Register Modal
 
 const dateOptions = {
   year: "numeric",
@@ -35,12 +35,14 @@ const statusColorMap = {
 export default function UsersTable({ columns, users }) {
   const changePassModal = useDisclosure();
   const editModal = useDisclosure();
+  const registerUserModal = useDisclosure(); // Modal for Register User
+
   const [userDetails, setUserDetails] = useState();
   const [selectedKeys, setSelectedKeys] = useState(new Set([]));
 
   const openEditModal = (id, username, role) => {
     editModal.onOpen();
-    setUserDetails([{ id: id, username: username, role: role }]);
+    setUserDetails([{ id, username, role }]);
     setSelectedKeys(new Set([role]));
   };
 
@@ -71,12 +73,7 @@ export default function UsersTable({ columns, users }) {
           <div className="relative flex items-center gap-2">
             <Tooltip content="Edit user">
               <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
-                <Button
-                  isIconOnly
-                  onPress={() =>
-                    openEditModal()
-                  }
-                >
+                <Button isIconOnly onPress={() => openEditModal(user.id, user.username, user.role)}>
                   <EditIcon />
                 </Button>
               </span>
@@ -104,6 +101,14 @@ export default function UsersTable({ columns, users }) {
 
   return (
     <>
+      {/* Register New User Button */}
+      <div className="flex justify-end mb-4">
+        <Button color="primary" onPress={registerUserModal.onOpen}>
+          Register New User
+        </Button>
+      </div>
+
+      {/* Users Table */}
       <Table>
         <TableHeader columns={columns}>
           {(column) => (
@@ -123,6 +128,7 @@ export default function UsersTable({ columns, users }) {
         </TableBody>
       </Table>
 
+      {/* Modals */}
       <UserInfoModal
         isOpen={editModal.isOpen}
         onOpenChange={editModal.onOpenChange}
@@ -134,6 +140,11 @@ export default function UsersTable({ columns, users }) {
       <ChangePasswordModal
         isOpen={changePassModal.isOpen}
         onOpenChange={changePassModal.onOpenChange}
+      />
+
+      <RegisterUserModal
+        isOpen={registerUserModal.isOpen}
+        onOpenChange={registerUserModal.onOpenChange}
       />
     </>
   );

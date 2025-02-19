@@ -2,7 +2,7 @@
 import { fetchWithAuth } from "./session";
 
 export async function handleUpload(image) {
-  console.log("handleUploaded:", image);
+  console.log("handleUpload:", image);
   if (!image) return false;
 
   const formData = new FormData();
@@ -17,14 +17,12 @@ export async function handleUpload(image) {
       }
     );
 
-    console.log(response);
-
     if (!response.ok) {
       console.error("Upload failed:", response.status);
       return false;
     }
+
     const data = await response.json();
-    console.log(data.status);
     console.log(data.filename, "Upload successful:", data.message);
 
     return true;
@@ -33,73 +31,95 @@ export async function handleUpload(image) {
     return false;
   }
 }
-
 export async function handleInference(filename) {
   try {
     console.log("handleInference:", filename);
 
-    // Step 1: Send filename for inference
-    const response = await fetchWithAuth(
-      "http://127.0.0.1:8000/api/img_inference",
-      {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename }),
-      }
-    );
+    const response = await fetchWithAuth("http://127.0.0.1:8000/api/img_inference", {
+      method: "POST",
+      body: JSON.stringify({ filename }),
+      credentials: "include",
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.log("Inference Error Response:", errorData);
-      return { error: errorData.error || "Failed to fetch inference" };
+      return { error: "Failed to start inference", logs: [] };
     }
 
-    const data = await response.json();
-    console.log("Count Data:", data.count_data);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let logs = [];
+    let jsonResponse = "";
 
-    // Step 2: Fetch processed image separately
-    const imageResponse = await fetchWithAuth(
-      "http://127.0.0.1:8000/api/get_processed_image",
-      {
-        method: "GET",
-        credentials: "include",
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      console.log("Inference Log:", chunk);
+
+      logs.push(chunk); // ✅ Collect logs
+
+      // ✅ Check if the chunk contains JSON-like structure
+      const jsonMatch = chunk.match(/\{.*\}/s); // Match JSON inside logs
+      if (jsonMatch) {
+        jsonResponse = jsonMatch[0]; // Extract JSON part
       }
-    );
+    }
 
-    const now = new Date();
-    // Format the date to 'YYYY-MM-DD'
-    const captureDate = now.toLocaleDateString("en-CA"); // 'en-CA' locale gives YYYY-MM-DD format
+    if (!jsonResponse) {
+      return { error: "Inference completed but no response received.", logs };
+    }
 
-    // Format the time to 'HH:mm:ss'
-    const captureTime = now.toLocaleTimeString("en-GB", { hour12: false }); // 'en-GB' locale and hour12: false for 24-hour time format
-    console.log(captureDate, captureTime);
-    //captureDate: '2025-02-17', captureTime: '17:45:16'
-    if (!imageResponse.ok) {
+    try {
+      const result = JSON.parse(jsonResponse);
+
       return {
-        countData: data.count_data,
-        error: "Failed to fetch processed image",
-        captureDate,
-        captureTime,
+        logs, // ✅ Send logs back to client
+        processedImageUrl: result.processed_image_url,
+        countData: result.count_data,
+        error: null,
       };
+    } catch (parseError) {
+      console.error("JSON Parsing Error:", parseError);
+      return { error: "Error parsing inference result.", logs };
+    }
+  } catch (error) {
+    console.error("Error during inference:", error);
+    return { error: "Inference failed.", logs: [] };
+  }
+}
+
+
+
+
+export async function fetchProcessedImage(filename) {
+  try {
+    const imageResponse = await fetchWithAuth("http://127.0.0.1:8000/api/get_imagedata", {
+      method: "POST",
+      body: JSON.stringify({ filename }),
+      credentials: "include"
+    });
+
+    if (!imageResponse.ok) {
+      throw new Error("Failed to fetch processed image");
     }
 
     const imageData = await imageResponse.json();
     console.log("Fetched Image URL:", imageData.imageUrl);
 
+    const now = new Date();
+    const captureDate = now.toLocaleDateString("en-CA");
+    const captureTime = now.toLocaleTimeString("en-GB", { hour12: false });
+
     return {
-      countData: data.count_data,
+      countData: imageData.countData,
       imageUrl: imageData.imageUrl,
       batchData: imageData.latestBatch,
-      captureDate: captureDate,
-      captureTime: captureTime,
-    };
-  } catch (error) {
-    console.error("Error fetching inference:", error);
-    return {
-      error: "Unexpected error occurred. Please try again.",
       captureDate,
       captureTime,
     };
+  } catch (error) {
+    console.error("Error fetching processed image:", error);
+    return { error: "Failed to fetch processed image." };
   }
 }

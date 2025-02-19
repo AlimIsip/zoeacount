@@ -2,15 +2,17 @@
 import {
   Input,
   Form,
-  Select,
-  SelectItem,
-  Checkbox,
   Button,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
 import { useState, useEffect } from "react";
 import { postNewEntry } from "@/lib/datapostput";
-import { getUser} from "@/lib/sessiondetails"
-
+import { getUser } from "@/lib/sessiondetails";
+import { useRouter } from "next/navigation"; // Next.js 15 router for redirection
 
 export default function ResultsPage({
   countData,
@@ -18,200 +20,174 @@ export default function ResultsPage({
   batchData,
   captureDate,
   captureTime,
-  user,
-  imgBlob
 }) {
   const [value, setValue] = useState(""); // Age value
   const [expectedMegalopaDate, setExpectedMegalopaDate] = useState(""); // Expected Megalopa date
   const [captureDateValue, setCaptureDateValue] = useState(captureDate); // Capture date value
   const [captureTimeValue, setCaptureTimeValue] = useState(captureTime); // Capture time value
-  const [submitted, setSubmitted] = useState(null);
   const [errors, setErrors] = useState({});
- 
+  const [isOpen, setIsOpen] = useState(false); // Modal state
+  const router = useRouter();
+
   const onSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-  
+
     try {
-      // Append the 'captured_by' field asynchronously
       const capturedBy = await getUser();
       formData.append("captured_by", capturedBy);
-  
-      // Fetch the image as a blob and append it to formData
+
+      // Fetch image blob
       const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
       const blob = await response.blob();
-      formData.append("img_blob", blob, "a.jpg"); // Append the image with filename
-  
-      // Send FormData to the API
-      const result = await postNewEntry(formData);
-      
-      // Clear errors and update the state with the response
+      formData.append("img_blob", blob, "a.jpg");
+
+      await postNewEntry(formData);
       setErrors({});
-      setSubmitted(result);
-  
-      console.log("Successfully posted:", result);
+      setIsOpen(true); // Open success modal
     } catch (error) {
       console.error("Submission Error:", error);
       setErrors({ general: error.message });
     }
   };
-  
 
-
-  // Function to calculate the expected Megalopa date
   const calculateMegalopaDate = (age) => {
-    if (age === "" || isNaN(age)) return; // Avoid processing if no age is provided or if it's invalid
+    if (!age || isNaN(age)) return;
 
-    // Convert capture date to Date object
     const captureDateObj = new Date(captureDateValue);
+    if (age > 0) captureDateObj.setDate(captureDateObj.getDate() - age);
 
-    // If age is not zero, calculate the day 0 by subtracting the age in days
-    if (age > 0) {
-      captureDateObj.setDate(captureDateObj.getDate() - age);
-    }
-
-    // Calculate the expected Megalopa date by adding 15-18 days range
     const minMegalopaDate = new Date(captureDateObj);
     minMegalopaDate.setDate(minMegalopaDate.getDate() + 15);
-
     const maxMegalopaDate = new Date(captureDateObj);
     maxMegalopaDate.setDate(maxMegalopaDate.getDate() + 18);
 
-    // Format the expected Megalopa date as a string (e.g., "MM/DD/YYYY")
-    const minDateString = `${
-      minMegalopaDate.getMonth() + 1
-    }/${minMegalopaDate.getDate()}/${minMegalopaDate.getFullYear()}`;
-    const maxDateString = `${
-      maxMegalopaDate.getMonth() + 1
-    }/${maxMegalopaDate.getDate()}/${maxMegalopaDate.getFullYear()}`;
-
-    // Set the expected Megalopa date range
-    setExpectedMegalopaDate(`${minDateString} - ${maxDateString}`);
+    setExpectedMegalopaDate(
+      `${minMegalopaDate.toLocaleDateString()} - ${maxMegalopaDate.toLocaleDateString()}`
+    );
   };
 
-  // Run the calculation whenever the age value changes
   useEffect(() => {
-    if (value !== "") {
-      calculateMegalopaDate(parseInt(value, 10));
-    }
+    if (value !== "") calculateMegalopaDate(parseInt(value, 10));
   }, [value]);
 
   return (
-    <div className="flex flex-col">
-      <h1 className="flex flex-grow text-3xl font-bold">New Count Entry</h1>
-      <div className="flex flex-wrap">
-        <div className="flex flex-grow m-3 items-center place-content-center bg-slate-500">
-          <div className="bg-blue-500">
-            <img
-              src={imageUrl}
-              alt="Processed"
-              className="max-w-5xl h-auto rounded-lg"
-            />
-          </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-2">
+      <h1 className="text-3xl font-bold mb-6">New Count Entry</h1>
+
+      <div className="grid md:grid-cols-3 gap-6 w-full">
+        {/* Processed Image */}
+        <div className="flex justify-center col-span-2 p-4 bg-gray-800 rounded-lg">
+          <img
+            src={imageUrl}
+            alt="Processed"
+            className="object-contain w-full h-full rounded-lg shadow-lg"
+          />
         </div>
-        <div className="p-10 m-3 bg-slate-500">
-          <Form
-            className=""
-            validationBehavior="native"
-            validationErrors={errors}
-            onReset={() => setSubmitted(null)}
-            onSubmit={onSubmit}
-          >
-            {/* Capture Date Input */}
+
+        {/* Form Section */}
+        <div className="p-6 bg-gray-800 rounded-lg shadow-lg">
+          <Form className="space-y-4" validationErrors={errors} onSubmit={onSubmit}>
             <Input
-              name={"datestamp"}
-              className={"p-2 font-bold"}
+              name="datestamp"
               label="Capture Date"
-              labelPlacement={"outside"}
               value={captureDateValue}
-              onChange={(e) => setCaptureDateValue(e.target.value)} // Handle date change
+              onChange={(e) => setCaptureDateValue(e.target.value)}
               type="date"
-              variant="faded"
+              variant="flat"
             />
 
-            {/* Capture Time Input */}
             <Input
-              name={"timestamp"}
-              className={"p-2 font-bold"}
+              
+              name="timestamp"
               label="Capture Time"
-              labelPlacement={"outside"}
               value={captureTimeValue}
-              onChange={(e) => setCaptureTimeValue(e.target.value)} // Handle time change
+              onChange={(e) => setCaptureTimeValue(e.target.value)}
               type="time"
-              variant="faded"
+              variant="flat"
             />
 
-            {/* Count Data Input */}
             <Input
               isRequired
-              name={"count_data"}
-              className={"p-2 font-bold"}
-              label="Count Data:"
-              labelPlacement={"outside"}
+              name="count_data"
+              label="Count Data"
               defaultValue={countData}
-              placeholder="Insert your total count"
+              placeholder="Total count"
               type="text"
-              variant="faded"
+              variant="flat"
             />
+
             <Input
-              name={"batch"}
-              className={"p-2 font-bold"}
-              isReadOnly
-              label="Batch:"
-              labelPlacement={"outside"}
+              name="batch"
+              label="Batch"
               defaultValue={batchData}
-              placeholder="Insert your batch data"
-              type="text"
-              variant="faded"
-            />
-
-            {/* Age Input */}
-            <Input
-            
-              name={"age"}
-              isRequired
-              className={"p-2 font-bold"}
-              label="Age:"
-              labelPlacement={"outside"}
-              placeholder="Insert your current larva day age since hatch"
-              type="text"
-              variant="faded"
-              value={value}
-              onChange={(e) => setValue(e.target.value)} // Handle age input change
-            />
-
-            {/* Expected Megalopa Date */}
-            <Input
-              isRequired
-              name={"megalopa_datestamp"}
+              placeholder="Batch ID"
               isReadOnly
-              className={"p-2 font-bold"}
-              label="Expected Megalopa Date"
-              labelPlacement={"outside"}
-              value={expectedMegalopaDate}
-              placeholder="Calculated expected Megalopa date"
               type="text"
-              variant="faded"
+              variant="flat"
             />
 
-            <Button
-              type="submit"
-              className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
-            >
-              Submit Results
-            </Button>
-            <Button
-              type="button"
-              className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
-            >
-              Recapture and Recount
-            </Button>
- </Form>
+            <Input
+              name="age"
+              isRequired
+              label="Age"
+              placeholder="Larval age in days"
+              type="text"
+              variant="flat"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+
+            <Input
+              isRequired
+              name="megalopa_datestamp"
+              label="Expected Megalopa Date"
+              value={expectedMegalopaDate}
+              placeholder="Auto-calculated Megalopa date"
+              isReadOnly
+              type="text"
+              variant="flat"
+            />
+
+            {/* Buttons */}
+            <div className="flex justify-between mt-4">
+              <Button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-5 m-2 rounded-md"
+              >
+                Submit Results
+              </Button>
+              <Button
+                type="button"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-5 py-2 m-2 rounded-md"
+                onClick={() => router.push("/capture")} // Refresh and recapture
+              >
+                Recapture & Recount
+              </Button>
+            </div>
+          </Form>
         </div>
       </div>
+
+      {/* Submission Success Modal */}
+      <Modal isOpen={isOpen} backdrop={"blur"} onClose={() => router.push("/")}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>Submission Successful</ModalHeader>
+              <ModalBody>
+                <p>Your count entry has been successfully submitted!</p>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="success" onPress={() => router.push("/")}>
+                  Go to Home
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

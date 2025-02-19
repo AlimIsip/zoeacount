@@ -1,8 +1,6 @@
 "use client";
 
-import { Select, SelectItem } from "@heroui/react";
-import { useState, useMemo } from "react";
-
+import { useState } from "react";
 import {
   Modal,
   ModalContent,
@@ -12,9 +10,11 @@ import {
   Button,
   Form,
   Input,
+  Select,
+  SelectItem,
 } from "@heroui/react";
 
-
+import { updateUser } from "@/lib/datapostput";
 
 export default function UserInfoModal({
   isOpen,
@@ -22,104 +22,94 @@ export default function UserInfoModal({
   userDetails,
   selectedKeys,
 }) {
- 
-  const [submitted, setSubmitted] = useState(null);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
-  const selectedValue = useMemo(
-    () => Array.from(selectedKeys).join(", ").replace(/_/g, ""),
-    [selectedKeys]
-  );
+  // Directly compute selectedValue
+  const selectedValue = Array.from(selectedKeys).join(", ").replace(/_/g, "");
 
- 
-
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.currentTarget));
-    // Custom validation checks
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData);
+
     const newErrors = {};
-
-    // Username validation
-    if (data.name === "admin") {
-      newErrors.name = "Nice try! Choose a different username";
+    if (data.username === "admin") {
+      newErrors.username = "Nice try! Choose a different username.";
     }
-
-
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    // Clear errors and submit
     setErrors({});
-    setSubmitted(data);
-    onClose();
+    setLoading(true);
+    try {
+      await updateUser(userDetails[0].id, data);
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <>
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                Edit User Info
-              </ModalHeader>
-              <ModalBody>
-                <Form
-                  className="w-full justify-center items-center space-y-4"
-                  validationBehavior="native"
-                  validationErrors={errors}
-                  onReset={() => setSubmitted(null)}
-                  onSubmit={onSubmit}
+    <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader>Edit User Info</ModalHeader>
+            <ModalBody>
+              <Form className="space-y-4" onSubmit={onSubmit}>
+                <Input
+                  isReadOnly
+                  defaultValue={userDetails[0].id}
+                  label="ID"
+                  variant="flat"
+                  name="id"
+                />
+                <Input
+                  isRequired
+                  label="USERNAME"
+                  defaultValue={userDetails[0].username}
+                  name="username"
+                />
+                <Select
+                  isRequired
+                  label="ROLE"
+                  name="role"
+                  placeholder={selectedValue}
                 >
-                  <Input
-                    isReadOnly
-                    defaultValue={userDetails[0].id}
-                    label="ID"
-                    variant="bordered"
-                  />
+                  <SelectItem key="admin" value="admin">
+                    Admin
+                  </SelectItem>
+                  <SelectItem key="staff" value="staff">
+                    Staff
+                  </SelectItem>
+                </Select>
 
-                  <Input
-                    isRequired
-                    label="USERNAME"
-                    defaultValue={userDetails[0].username}
-                  />
-
-                  <Select
-                    isRequired
-                    label="ROLE"
-                    labelPlacement="inside"
-                    name="role"
-                    placeholder={selectedValue}
-                  >
-                    <SelectItem key="ar" value="ar">
-                      Admin
-                    </SelectItem>
-                    <SelectItem key="us" value="us">
-                      Staff
-                    </SelectItem>
-                  </Select>
-                  </Form>
-              </ModalBody>
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Cancel Changes
-                </Button>
-                <Button color="primary" onPress={onClose} type="submit">
+                {errors.username && (
+                  <p className="text-red-500 text-sm">{errors.username}</p>
+                )}
+                <Button color="primary" type="submit" isLoading={loading}>
                   Save Changes
                 </Button>
-                {submitted && (
-                  <div className="text-small text-default-500 mt-4">
-                    Submitted data:{" "}
-                    <pre>{JSON.stringify(submitted, null, 2)}</pre>
-                  </div>
-                )}
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-    </>
+              </Form>
+            </ModalBody>
+
+            <ModalFooter>
+              <Button
+                color="danger"
+                variant="light"
+                onPress={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
   );
 }

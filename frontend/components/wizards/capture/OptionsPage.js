@@ -3,28 +3,34 @@
 import CaptureIcon from "@/components/icons/CaptureIcon";
 import UploadIcon from "@/components/icons/UploadIcon";
 
-
-export default function OptionsPage({setCaptureOption, setCurrentPage}) {
+export default function OptionsPage({ setCaptureOption, setCurrentPage }) {
   return (
-    <div className="flex flex-col">
-      <h1 className="flex flex-grow text-3xl font-bold">Select capture method</h1>
-      <div className="flex flex-wrap h-96">
-        <div className="flex flex-grow m-3 bg-slate-500 border-3 items-center place-content-center">
-          <div className="bg-blue-500 border-3 cursor-pointer" 
-          onClick={() => {setCaptureOption("Capture"); setCurrentPage(2)}} >
-            <CaptureIcon />
-            <p>Capture Image</p>
-          </div>
+    <div className="flex flex-col items-center text-center">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">Select Capture Method</h1>
+
+      <div className="flex flex-col sm:flex-row gap-6 w-full max-w-md">
+        {/* Capture Image Option */}
+        <div
+          className="flex flex-col items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md p-6 cursor-pointer transition-all w-full sm:w-1/2"
+          onClick={() => {
+            setCaptureOption("Capture");
+            setCurrentPage(2);
+          }}
+        >
+          <CaptureIcon className="w-12 h-12 mb-3" />
+          <p className="text-lg font-semibold">Capture Image</p>
         </div>
 
-        <div className="flex flex-grow m-3 bg-slate-500 border-3 items-center place-content-center">
-          <div className="bg-blue-500 border-3 flex place-content-center cursor-pointer" 
-          onClick={() => {setCaptureOption("Upload"); setCurrentPage(2)}}>
-            <UploadIcon />
-            <div className="flex">
-            <p>Upload Image</p>
-            </div>
-          </div>
+        {/* Upload Image Option */}
+        <div
+          className="flex flex-col items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-md p-6 cursor-pointer transition-all w-full sm:w-1/2"
+          onClick={() => {
+            setCaptureOption("Upload");
+            setCurrentPage(2);
+          }}
+        >
+          <UploadIcon className="w-12 h-12 mb-3" />
+          <p className="text-lg font-semibold">Upload Image</p>
         </div>
       </div>
     </div>

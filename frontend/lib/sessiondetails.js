@@ -69,3 +69,26 @@ export async function handleLogin(formData){
   await createSession(formData);
   redirect('/');
 }
+
+export async function fetchCurrentUser() {
+  try {
+    const cookieStore = cookies();
+    const accessToken = cookieStore.get("access_token")?.value;
+    
+    if (!accessToken) {
+      throw new Error("No access token found");
+    }
+
+    const userData = await decrypt(accessToken);
+    console.log(userData)
+    return {
+      username: userData.name,
+      last_login: userData.last_login,
+      date_joined: userData.date_joined,
+      role: userData.role,
+    };
+  } catch (error) {
+    console.error("Failed to fetch current user:", error);
+    throw new Error("Failed to retrieve user data");
+  }
+}

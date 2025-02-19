@@ -8,7 +8,6 @@ import {
   YAxis,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from "recharts";
 
 export default function Card({
@@ -20,79 +19,55 @@ export default function Card({
   children,
 }) {
   return (
-    <div
-      className="block
-        flex-grow
-        px-2
-        py-3
-        m-2
-        rounded-lg 
-        shadow-sm
-        bg-slate-300
-        "
-    >
+    <div className="flex flex-col items-center bg-sky-950 text-amber-400 rounded-lg shadow-md p-3 m-2 transition-shadow hover:shadow-xl border border-sky-900">
       {children}
+
       {/* Image */}
-      {imgSrc && <img src={imgSrc} />}
-      {/* Description */}
+      {imgSrc && (
+        <img
+          src={imgSrc}
+          alt="Card Image"
+          className="w-full h-auto rounded-md mb-4 border border-amber-400"
+        />
+      )}
+
+      {/* Chart */}
       {chartData && dataColumn && (
-        <ChartLine chartData={chartData} dataColumn={dataColumn} />
+        <div className="w-full bg-sky-900 rounded-md p-2">
+          <ChartLine chartData={chartData} dataColumn={dataColumn} />
+        </div>
       )}
 
       {/* Title */}
       {title && (
-        <h5
-          className=" 
-            text-5xl 
-            text-center 
-            font-bold 
-            tracking-tight
-            text-gray-900
-           "
-        >
+        <h5 className="text-3xl font-semibold text-amber-400 text-center mt-2">
           {title}
         </h5>
       )}
 
       {/* Description */}
       {description && (
-        <p
-          className="font-normal 
-            text-center 
-            text-gray-900 
-          "
-        >
-          {description}
-        </p>
+        <p className="text-amber-300 text-center mt-2">{description}</p>
       )}
     </div>
   );
 }
 
 export function ChartLine({ chartData, dataColumn }) {
-  let data;
-  data = [];
+  const data = chartData.map((item) => ({
+    name: item.age,
+    uv: dataColumn === "count data" ? item.count_data : item.mortality_rate,
+  }));
 
-  if (dataColumn === "count data") {
-    chartData.map((item) =>
-      data.push({ name: item.age, uv: item.count_data, amt: 2000 })
-    );
-  } else if (dataColumn === "mortality rate") {
-    chartData.map((item) =>
-      data.push({ name: item.age, uv: item.mortality_rate, amt: 2000 })
-    );
-  }
-
-  const renderLineChart = (
-    <ResponsiveContainer width="100%" height={200}>
-      <LineChart data={data} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
-        <Line type="monotone" dataKey="uv" stroke="#8884d8" />
-        <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
-        <XAxis tick={{ fontSize: 12 }} />
-        <YAxis tick={{ fontSize: 12 }} width={40} />
-        <Tooltip />
+  return (
+    <ResponsiveContainer width="100%" height={250}>
+      <LineChart data={data} margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+        <Line type="monotone" dataKey="uv" stroke="#fbbf24" strokeWidth={2} />
+        <CartesianGrid stroke="#64748b" strokeDasharray="4 4" />
+        <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#fbbf24" }} />
+        <YAxis tick={{ fontSize: 12, fill: "#fbbf24" }} width={50} />
+        <Tooltip contentStyle={{ backgroundColor: "#1e3a8a", color: "#fbbf24" }} />
       </LineChart>
     </ResponsiveContainer>
   );
-  return renderLineChart;
 }
