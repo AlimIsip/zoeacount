@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.db.models import Max
+from django.contrib.auth.password_validation import validate_password
 
 #Local imports for authentication
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
@@ -24,7 +25,9 @@ import os
 from io import BytesIO
 import base64
 import cv2
+import json
 from zoeaapi.cv_app.TFLite_detection_image import slice_image, detect_objects_tflite, reconstruct_image
+
 
 
 User = get_user_model()
@@ -56,14 +59,14 @@ def home(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_table(request):
-    table = ZoeaTable.objects.order_by('-timestamp')
+    table = ZoeaTable.objects.order_by('-datestamp')
     serializer = ZoeaTableSerializer(table, many=True, context={'request': request})
     return JsonResponse(serializer.data,safe=False)
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_dashboard_stats(request):
-    latest = ZoeaTable.objects.latest('timestamp')
+    latest = ZoeaTable.objects.latest('datestamp')
     serializer = ZoeaTableSerializer(latest, context={'request': request})
     return JsonResponse(serializer.data, safe=False)
 
@@ -75,7 +78,7 @@ def get_chart_stats(request):
     return JsonResponse(serializer.data, safe=False)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])  # Requires authentication
+@permission_classes([AllowAny])  # Requires authentication
 def user_list(request):
     users = User.objects.all()
     serializer = UserSerializer(users, many=True)
@@ -103,6 +106,26 @@ def user_edit(request, pk):
         serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def user_change_password(request):
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+
+    if not user.check_password(old_password):
+        return Response({'error': 'Incorrect old password'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(new_password, user)
+    except Exception as e:
+        return Response({'error': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(new_password)
+    user.save()
+    return Response({'message': 'Password updated successfully'}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -165,16 +188,21 @@ def img_inference(request):
             yield f"[INFO] Reconstructing detected objects into final image...\n"
             reconstruct_image(str(input_image_path), detections, str(output_image_path))
 
-            yield f"[INFO] Inference completed. Processed image saved.\n"
-            yield f'{{"processed_image_url": "/api/get_processed_image/{filename}", "count_data": {len(detections)} }}\n'
+            # ✅ Ensure valid JSON response in the final chunk
+            processed_image_url = f"{request.scheme}://{request.get_host()}/media/processed/{filename}"
+            result = {
+                "processed_image_url": processed_image_url,
+                "count_data": len(detections),
+            }
+            yield json.dumps(result)  # ✅ Ensure proper JSON format
 
         return StreamingHttpResponse(inference_logs(), content_type="text/event-stream")
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@api_view(["POST"])
+@permission_classes([AllowAny])
 def get_processed_image(request):
     """
     Returns the URL of the processed image along with the incremented latest batch.
@@ -183,18 +211,23 @@ def get_processed_image(request):
     latest_entry = ZoeaTable.objects.aggregate(latest_batch=Max("batch"))
     latest_batch = latest_entry.get("latest_batch", 0)  # Default to 0 if no batch exists
 
+    filename = request.data.get("filename")
+    print(filename)
     # Define the relative path to the processed image
-    relative_image_path = f"results/processed_{latest_batch}.jpg"
+    image_path = f"processed/{filename}"
 
     # Construct the absolute file path
     base_dir = Path(__file__).resolve().parent.parent
-    output_image_path = base_dir / "zoeaapi" / "cv_app" / relative_image_path
+    output_image_path = base_dir / "zoeaapi" / "cv_app" / image_path
 
     if not output_image_path.exists():
         return JsonResponse({"error": "Processed image not found"}, status=404)
 
     # Construct the URL where the image can be accessed
-    image_url = f"{request.scheme}://{request.get_host()}/{relative_image_path}"
+    image_url = f"{request.scheme}://{request.get_host()}/results/{filename}"
+
+    print(image_url)
+    print(latest_batch)
 
     return JsonResponse({
         "imageUrl": image_url,

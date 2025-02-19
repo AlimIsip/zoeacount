@@ -2,8 +2,8 @@ from email.headerregistry import Group
 
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from .models import ZoeaTable, ZoeaBatch
+from datetime import datetime
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
@@ -39,6 +39,17 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         group = user.groups.order_by('name').first()  # Get the first group alphabetically
         token['role'] = group.name if group else None # Add the group name or None if no group exists
         token['name'] = user.username if user else None
+
+
+        if user:
+            last_login = user.last_login.strftime("%B %d, %Y") if user.last_login else None
+            date_joined = user.date_joined.strftime("%B %d, %Y") if user.date_joined else None
+        else:
+            last_login = None
+            date_joined = None
+
+        token['last_login'] = last_login
+        token['date_joined'] = date_joined
         # ...
         return token
 
