@@ -6,7 +6,7 @@ import { phaseTimelineChart, megalopaTimelineChart } from "@/components/containe
 export default async function Home() {
   const dashboard_data = await fetchDashboardData();
   const chart_data = await fetchChartData();
-
+  console.log(chart_data)
   function formatDate() {
     const date = new Date(dashboard_data.datestamp);
     // date.setDate(date.getDate() + days);

@@ -59,7 +59,7 @@ def home(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_table(request):
-    table = ZoeaTable.objects.order_by('-datestamp')
+    table = ZoeaTable.objects.order_by('-datestamp', '-timestamp')
     serializer = ZoeaTableSerializer(table, many=True, context={'request': request})
     return JsonResponse(serializer.data,safe=False)
 
@@ -73,7 +73,8 @@ def get_dashboard_stats(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_chart_stats(request):
-    chart_stats = ZoeaTable.objects.order_by('timestamp')[:7]
+    chart_stats = ZoeaTable.objects.order_by('-datestamp', '-timestamp')[:7]  # Get last 7 records
+    chart_stats = reversed(chart_stats)  # Reverse to keep oldest first
     serializer = ZoeaTableSerializer(chart_stats, many=True, context={'request': request})
     return JsonResponse(serializer.data, safe=False)
 
