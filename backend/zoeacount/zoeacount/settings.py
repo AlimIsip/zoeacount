@@ -139,7 +139,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 MEDIA_URL = "/media/"
 
-RESULTS_ROOT = BASE_DIR / "zoeaapi" / "cv_app" / "results"
+RESULTS_ROOT = BASE_DIR / "zoeaapi" / "cv_app" / "processed"
 
 RESULTS_URL = "/results/"
 
