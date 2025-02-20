@@ -25,7 +25,9 @@ WORKDIR /app
 
 
 # RUN pip3 install --upgrade pip
-
+# Install TensorFlow separately to avoid conflicts
+RUN pip3 install --no-cache-dir --break-system-packages --upgrade pip && \
+    pip3 install --no-cache-dir --break-system-packages tensorflow==2.12.0
 
 COPY ./requirements.txt /app/requirements.txt
 
