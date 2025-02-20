@@ -2,19 +2,12 @@
 
 import { fetchWithAuth } from "./session";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function fetchDashboardData() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const data = await fetch("http://127.0.0.1:8000/api/table/dashboard");
+    const data = await fetch(`${API_URL}/api/table/dashboard`);
     const dashboard_data = await data.json();
-    // console.log('Data fetch completed after 3 seconds.');
-
     return dashboard_data;
   } catch (error) {
     console.error("Database Error:", error);
@@ -24,16 +17,8 @@ export async function fetchDashboardData() {
 
 export async function fetchChartData() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const data = await fetch("http://127.0.0.1:8000/api/charts");
+    const data = await fetch(`${API_URL}/api/charts`);
     const chart_data = await data.json();
-    // console.log('Data fetch completed after 3 seconds.');
-
     return chart_data;
   } catch (error) {
     console.error("Database Error:", error);
@@ -43,16 +28,8 @@ export async function fetchChartData() {
 
 export async function fetchTimelineData() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const data = await fetchWithAuth('http://127.0.0.1:8000/api/table');
+    const data = await fetchWithAuth(`${API_URL}/api/table`);
     const timeline_data = await data.json();
-    // console.log('Data fetch completed after 3 seconds.');
-
     return timeline_data;
   } catch (error) {
     console.error("Database Error:", error);
@@ -62,23 +39,12 @@ export async function fetchTimelineData() {
 
 export async function fetchUsersData() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const data = await fetchWithAuth('http://127.0.0.1:8000/api/users');
+    const data = await fetchWithAuth(`${API_URL}/api/users`);
     const users_data = await data.json();
-    // console.log('Data fetch completed after 3 seconds.');
     console.log(users_data);
-    
     return users_data;
   } catch (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch users data.");
   }
 }
-
-
-

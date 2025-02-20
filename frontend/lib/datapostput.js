@@ -2,9 +2,11 @@
 
 import { fetchWithAuth } from "./session";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function postNewUser(data) { 
   try {
-    const response = await fetchWithAuth("http://127.0.0.1:8000/api/users/create", {
+    const response = await fetchWithAuth(`${API_URL}/api/users/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -23,10 +25,9 @@ export async function postNewUser(data) {
   }
 }
 
-
 export async function updateUser(pk, data) {
   try {
-    const response = await fetchWithAuth(`http://127.0.0.1:8000/api/users/edit/${pk}/`, {
+    const response = await fetchWithAuth(`${API_URL}/api/users/edit/${pk}/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -47,13 +48,7 @@ export async function updateUser(pk, data) {
 
 export async function putNewUser(data) {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const response = await fetchWithAuth("http://127.0.0.1:8000/api/users/edit", {
+    const response = await fetchWithAuth(`${API_URL}/api/users/edit`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
@@ -61,8 +56,7 @@ export async function putNewUser(data) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    const usersData = await response.json();
-    return usersData;
+    return await response.json();
   } catch (error) {
     console.error("Database Error:", error);
     throw new Error("Failed to fetch users data.");
@@ -71,9 +65,9 @@ export async function putNewUser(data) {
 
 export async function postNewEntry(formData) {
   try {
-    const response = await fetchWithAuth("http://127.0.0.1:8000/api/post_new_entry", {
+    const response = await fetchWithAuth(`${API_URL}/api/post_new_entry`, {
       method: "POST",
-      body: formData, // Send FormData directly
+      body: formData,
     });
 
     if (!response.ok) {
@@ -90,7 +84,7 @@ export async function postNewEntry(formData) {
 
 export async function changeUserPassword(oldPassword, newPassword) {
   try {
-    const response = await fetchWithAuth("http://127.0.0.1:8000/api/users/change_password", {
+    const response = await fetchWithAuth(`${API_URL}/api/users/change_password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -112,4 +106,3 @@ export async function changeUserPassword(oldPassword, newPassword) {
     throw new Error("Password change request failed. ");
   }
 }
-

@@ -1,6 +1,8 @@
 "use server";
 import { fetchWithAuth } from "./session";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export async function handleUpload(image) {
   console.log("handleUpload:", image);
   if (!image) return false;
@@ -10,7 +12,7 @@ export async function handleUpload(image) {
 
   try {
     const response = await fetchWithAuth(
-      "http://127.0.0.1:8000/api/upload_raw_img",
+      `${API_URL}/api/upload_raw_img`,
       {
         method: "POST",
         body: formData,
@@ -31,11 +33,12 @@ export async function handleUpload(image) {
     return false;
   }
 }
+
 export async function handleInference(filename) {
   try {
     console.log("handleInference:", filename);
 
-    const response = await fetchWithAuth("http://127.0.0.1:8000/api/img_inference", {
+    const response = await fetchWithAuth(`${API_URL}/api/img_inference`, {
       method: "POST",
       body: JSON.stringify({ filename }),
       credentials: "include",
@@ -89,12 +92,9 @@ export async function handleInference(filename) {
   }
 }
 
-
-
-
 export async function fetchProcessedImage(filename) {
   try {
-    const imageResponse = await fetchWithAuth("http://127.0.0.1:8000/api/get_imagedata", {
+    const imageResponse = await fetchWithAuth(`${API_URL}/api/get_imagedata`, {
       method: "POST",
       body: JSON.stringify({ filename }),
       credentials: "include"

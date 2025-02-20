@@ -3,6 +3,7 @@
 import "server-only";
 import { cookies } from 'next/headers';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Server Action to handle login
 export async function createSession(formData) {
@@ -11,7 +12,7 @@ export async function createSession(formData) {
   const password = formData.get('password');
 
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/token', {
+    const response = await fetch(`${API_URL}/api/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,10 +48,8 @@ export async function createSession(formData) {
   }
 }
 
-
 // Server Action to refresh token
 export async function refreshSession() {
-
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get('refresh_token')?.value;
 
@@ -59,7 +58,7 @@ export async function refreshSession() {
   }
 
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/token/refresh/', {
+    const response = await fetch(`${API_URL}/api/token/refresh/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -97,8 +96,6 @@ export async function fetchWithAuth(url, options = {}) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('access_token')?.value;
 
-
-
   const headers = { ...options.headers, Authorization: `Bearer ${accessToken}` };
   
   if (!(options.body instanceof FormData)) {
@@ -113,7 +110,7 @@ export async function fetchWithAuth(url, options = {}) {
 
     // If unauthorized, try to refresh token
     if (response.status === 401) {
-      const refreshResult = await refreshToken();
+      const refreshResult = await refreshSession();
 
       if (refreshResult.success) {
         // Retry the original request with new token
@@ -134,4 +131,3 @@ export async function fetchWithAuth(url, options = {}) {
     return { error: 'Network error' };
   }
 }
-
