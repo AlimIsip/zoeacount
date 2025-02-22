@@ -15,9 +15,9 @@ urlpatterns = [
     path('users/create', user_create, name='user_create'),
     path('users/edit/<int:pk>/', user_edit, name='user_edit'),
     path('users/change_password', user_change_password, name='user_change_password'),
+    path('capture', upload_captured_img, name='upload_captured_img'),
 
-
-    # path('video_feed', video_feed, name='video_feed')
+    path('video_feed', video_feed, name='video_feed')
     # path('table/<int:pk>', zoea_entry_func, name='zoea_entry'),
 ]
 

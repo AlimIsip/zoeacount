@@ -7,6 +7,8 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.db.models import Max
 from django.contrib.auth.password_validation import validate_password
+from libcamera import controls
+import time
 
 #Local imports for authentication
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
@@ -15,7 +17,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 #Local imports for Timeline Table Data
 from .models import ZoeaTable
-from .serializer import ZoeaTableSerializer, ZoeaBatchSerializer, UserSerializer
+from .serializer import ZoeaTableSerializer, ZoeaBatchSerializer, UserSerializer, UserCreateSerializer
 
 #Local imports for Object Detection
 from django.core.files.storage import default_storage, FileSystemStorage
@@ -27,26 +29,67 @@ import base64
 import cv2
 import json
 from zoeaapi.cv_app.TFLite_detection_image import slice_image, detect_objects_tflite, reconstruct_image
-
+from picamera2 import Picamera2
+import atexit
+import threading
 
 
 User = get_user_model()
 
-#Local imports for Video Feed
-# from picamera2 import Picamera2
-# camera = Picamera2()
-# camera.configure(camera.create_preview_configuration(main={"format": 'XRGB8888', "size": (640, 480)}))
-# camera.start()
+camera_lock = threading.Lock()
+camera = None
 
-# def generate_frames():
-#     while True:
-#         frame = camera.capture_array()
-#         ret, buffer = cv2.imencode('.jpg', frame)
-#         frame = buffer.tobytes()
-#         yield (b'--frame\r\n'
-#                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+def initialize_camera():
+    """Initializes the camera only once."""
+    global camera
+    with camera_lock:
+        if camera is None:
+            camera = Picamera2()
+            camera.configure(camera.create_preview_configuration(
+                main={"format": 'XRGB8888', "size": (1280, 720)}, buffer_count=3))
+            camera.start()
 
 
+
+def close_camera():
+    """Closes the camera when the app shuts down."""
+    global camera
+    with camera_lock:
+        if camera:
+            camera.close()
+            camera = None
+
+# Register cleanup function
+atexit.register(close_camera)
+
+def generate_frames():
+    """Video streaming generator function."""
+    initialize_camera()  # Ensure camera is initialized
+
+    try:
+        while True:
+            with camera_lock:
+                frame = camera.capture_array()
+            
+            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            frame = buffer.tobytes()
+
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    except GeneratorExit:
+        pass  # Client disconnected
+
+    except Exception as e:
+        print(f"Error in generate_frames: {e}")
+
+    finally:
+        close_camera()  # Ensure camera is released
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def video_feed(request):
+    return StreamingHttpResponse(generate_frames(), content_type='multipart/x-mixed-replace; boundary=frame')
 # Create your views here.
 
 @api_view(['GET'])
@@ -88,21 +131,25 @@ def user_list(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def user_create(request):
-    serializer = UserSerializer(data=request.data)
+    serializer = UserCreateSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
+        user = serializer.save()
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "role": user.groups.first().name if user.groups.exists() else None
+        }, status=status.HTTP_201_CREATED)
+    
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['PUT'])
+@api_view(['PUT', 'PATCH'])  # Allow PATCH for partial updates
 @permission_classes([IsAuthenticated])
 def user_edit(request, pk):
     try:
         user = User.objects.get(pk=pk)
     except User.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    serializer = UserSerializer(user, data=request.data)
+    serializer = UserCreateSerializer(user, data=request.data, partial=True)  # Allow partial updates
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
@@ -138,6 +185,68 @@ def create_entry(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+def initialize_camera_capture():
+    """Initializes the camera only once (shared between video feed and still capture)."""
+    global camera
+    with camera_lock:
+        if camera is None:
+            camera = Picamera2()
+            camera.configure(camera.create_still_configuration(main={'size': (4608, 2592)}))
+            camera.start()
+
+def capture_image():
+    """Captures a single still image after autofocus success."""
+    initialize_camera_capture()  # Ensure camera is initialized
+
+    with camera_lock:
+        camera.set_controls({"AfMode": controls.AfModeEnum.Continuous})
+
+        # Wait for autofocus success
+        for _ in range(10):  # Try for up to ~7 seconds
+            if camera.autofocus_cycle():
+                break
+            time.sleep(0.7)
+        else:
+            close_camera()
+            return None  # Autofocus failed
+
+        # Save captured image
+        base_dir = Path(__file__).resolve().parent.parent
+        image_path = base_dir / "zoeaapi" / "cv_app" / "to_detect" / "captured_image.jpg"
+        camera.capture_file(image_path)
+
+    close_camera()
+    return image_path   
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_captured_img(request):
+    image_path = capture_image()
+
+    if image_path is None:
+        return Response({"error": "Autofocus failed. Please try again."}, status=400)
+
+    try:
+        base_dir = Path(__file__).resolve().parent.parent
+        cv_app_path = base_dir / "zoeaapi" / "cv_app" / "to_detect"
+        fs = FileSystemStorage(location=cv_app_path)
+        filename = fs.save("captured_image.jpg", open(image_path, "rb"))
+
+        # Construct the URL where the image can be accessed
+        image_url = f"{request.scheme}://{request.get_host()}/captured/{filename}"
+
+        return Response({
+            "message": "Image captured and uploaded successfully.",
+            "imageUrl": image_url,
+            "filename" : filename
+        }, status=201)
+
+    except Exception as e:
+        return Response({"error": f"Failed to save image: {str(e)}"}, status=500)
+
+
 
 
 @api_view(['POST'])
@@ -190,7 +299,7 @@ def img_inference(request):
             reconstruct_image(str(input_image_path), detections, str(output_image_path))
 
             # ✅ Ensure valid JSON response in the final chunk
-            processed_image_url = f"{request.scheme}://{request.get_host()}/media/processed/{filename}"
+            processed_image_url = f"{request.scheme}://{request.get_host()}/results/{filename}"
             result = {
                 "processed_image_url": processed_image_url,
                 "count_data": len(detections),
@@ -211,9 +320,8 @@ def get_processed_image(request):
     # Retrieve the latest batch from ZoeaTable
     latest_entry = ZoeaTable.objects.aggregate(latest_batch=Max("batch"))
     latest_batch = latest_entry.get("latest_batch", 0)  # Default to 0 if no batch exists
-
+    latest_batch = latest_batch + 1
     filename = request.data.get("filename")
-    print(filename)
     # Define the relative path to the processed image
     image_path = f"processed/{filename}"
 
@@ -226,9 +334,6 @@ def get_processed_image(request):
 
     # Construct the URL where the image can be accessed
     image_url = f"{request.scheme}://{request.get_host()}/results/{filename}"
-
-    print(image_url)
-    print(latest_batch)
 
     return JsonResponse({
         "imageUrl": image_url,
@@ -322,8 +427,5 @@ def post_new_entry(request):
 #     except Exception as e:
 #         return JsonResponse({"error": str(e)}, status=500)
     
-# @api_view(['GET'])
-# def video_feed(request):
-#     return StreamingHttpResponse(generate_frames(), content_type='multipart/x-mixed-replace; boundary=frame')
 
 

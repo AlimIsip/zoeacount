@@ -4,6 +4,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import ZoeaTable, ZoeaBatch
 from datetime import datetime
+from django.contrib.auth.models import Group
+
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
@@ -30,6 +32,45 @@ class UserSerializer(serializers.ModelSerializer):
     def get_role(self, obj):
         return obj.groups.first().name if obj.groups.exists() else None
 
+class UserCreateSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(write_only=True, required=False)  # Allow role updates
+    password = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'password', 'role']
+
+    def update(self, instance, validated_data):
+        role_name = validated_data.pop("role", None)  # Extract role if provided
+        password = validated_data.pop("password", None)  # Extract password if provided
+
+        # Update user fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        # If password is provided, hash it
+        if password:
+            instance.set_password(password)
+
+        # If role is provided, update the group
+        if role_name:
+            allowed_roles = {"admin": "admin", "staff": "staff"}
+            if role_name not in allowed_roles:
+                raise serializers.ValidationError({"role": "Invalid role provided"})
+
+            # Clear old groups and assign the new one
+            instance.groups.clear()
+            group = Group.objects.filter(name=allowed_roles[role_name]).first()
+            if group:
+                instance.groups.add(group)
+            else:
+                raise serializers.ValidationError({"role": f"Group '{allowed_roles[role_name]}' does not exist."})
+
+        instance.save()
+        return instance
+
+
+    
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
