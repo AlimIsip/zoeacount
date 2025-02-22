@@ -21,6 +21,7 @@ services:
       - LIBCAMERA_LOG_LEVELS=3
     networks:
       - zoeacount
+    mem_limit: 512m 
     restart: always
 
   frontend:
