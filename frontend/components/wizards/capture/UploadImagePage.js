@@ -64,9 +64,9 @@ export default function UploadImagePage({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
         {/* Image Preview */}
-        <div className="flex items-center justify-center bg-gray-100 rounded-lg p-4 shadow-inner aspect-[4/3]">
+        <div className="flex items-center justify-center bg-gray-100 rounded-lg p-4 shadow-inner aspect-[16/9]">
           {preview ? (
-            <img src={preview} alt="Preview" className="max-h-72 object-contain rounded-md" />
+            <img src={preview} alt="Preview" className="object-contain rounded-md" />
           ) : (
             <p className="text-gray-500">No image selected</p>
           )}
@@ -146,3 +146,4 @@ export default function UploadImagePage({
     </div>
   );
 }
+  
