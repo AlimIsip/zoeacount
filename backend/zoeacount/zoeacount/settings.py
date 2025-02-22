@@ -27,7 +27,7 @@ SECRET_KEY = "django-insecure-dk_4diee)+$cu1_0-p#dh6f7v$83kbjwax#ju+8dq7oazz3kmi
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['0.0.0.0', '192.168.1.12', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['0.0.0.0', '192.168.1.12', 'localhost', '127.0.0.1', '10.42.0.1']
 
 
 # Application definition
@@ -56,11 +56,25 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware"
 ]
 
-CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://10.42.0.1:3000",
+    "http://192.168.1.12:3000",
+    "http://10.42.0.1:3000"
+ 
 ]
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+    'x-csrftoken',
+]
+
+CORS_ALLOW_CREDENTIALS = True
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = False  # Set to True if using HTTPS
+
 
 ROOT_URLCONF = "zoeacount.urls"
 
@@ -143,6 +157,10 @@ RESULTS_ROOT = BASE_DIR / "zoeaapi" / "cv_app" / "processed"
 
 RESULTS_URL = "/results/"
 
+CAPTURED_ROOT = BASE_DIR / "zoeaapi" / "cv_app" / "to_detect"
+
+CAPTURED_URL = "/captured/"
+
 # Authentication
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -161,8 +179,20 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_LIFETIME_LATE_USER': timedelta(days=30),
     'TOKEN_OBTAIN_SERIALIZER': 'zoeaapi.serializer.CustomTokenObtainPairSerializer',
     "SIGNING_KEY": 'AAdFksq97fVIg1sHAgyygC3XaKkutJId8lzIKRixVQ0=',
+
+    # Enable JWT in cookies
+    "AUTH_COOKIE": "access_token",
+    "AUTH_COOKIE_REFRESH": "refresh_token",
+    "AUTH_COOKIE_SECURE": False,  # Set to False if not using HTTPS
+    "AUTH_COOKIE_HTTP_ONLY": True,
+    "AUTH_COOKIE_PATH": "/",
+    "AUTH_COOKIE_SAMESITE": "None",  # Important for cross-origin requests
 }
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Default session engine
 SESSION_COOKIE_HTTPONLY = True  # Helps prevent access to cookies via JavaScript
 SESSION_COOKIE_SECURE = False  # Should be True in production (use HTTPS)
+
+CSRF_COOKIE_SECURE = False  # Secure cookie (only for HTTPS)
+CSRF_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SAMESITE = 'None'
