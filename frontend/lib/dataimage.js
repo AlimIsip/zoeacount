@@ -13,11 +13,13 @@ export async function handleUpload(image) {
   try {
     const response = await fetchWithAuth(
       `${API_URL}/api/upload_raw_img`,
-      {
+      { 
         method: "POST",
         body: formData,
       }
     );
+
+    console.log("Upload:",response)
 
     if (!response.ok) {
       console.error("Upload failed:", response.status);
@@ -121,5 +123,24 @@ export async function fetchProcessedImage(filename) {
   } catch (error) {
     console.error("Error fetching processed image:", error);
     return { error: "Failed to fetch processed image." };
+  }
+}
+
+export async function fetchCaptureImage() {
+  try {
+    const response = await fetchWithAuth(`${API_URL}/api/capture`, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed response. Failed to capture image.");
+    }
+
+    const data = await response.json(); // Parse JSON response
+    return data;
+  } catch (error) {
+    console.error("Capture Image Error:", error);
+    throw new Error(error.message || "Failed to capture image.");
   }
 }

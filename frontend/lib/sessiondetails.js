@@ -19,9 +19,10 @@ export async function isRole(requiredRole) {
 
   try {
     const decodedToken = await decrypt(accessToken);
-    // Check if the user's role matches the required role
-    return decodedToken.user.role === requiredRole;
+    console.log("User role:", decodedToken.role); // This appears in the server logs
+    return decodedToken.role === requiredRole ? decodedToken.role : false;
   } catch (error) {
+    console.error("Error decoding token:", error);
     return false;
   }
 }
@@ -72,8 +73,8 @@ export async function handleLogin(formData){
 
 export async function fetchCurrentUser() {
   try {
-    const cookieStore = cookies();
-    const accessToken = cookieStore.get("access_token")?.value;
+    const cookieStore = await cookies();
+    const accessToken = await cookieStore.get("access_token")?.value;
     
     if (!accessToken) {
       throw new Error("No access token found");

@@ -27,14 +27,14 @@ export async function createSession(formData) {
       // Securely store tokens in HTTP-only cookies
       cookieStore.set('access_token', data.access, {
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: 'strict',
         maxAge: 60 * 60, // 1 hour
       });
 
       cookieStore.set('refresh_token', data.refresh, {
         httpOnly: true,
-        secure: true,
+        secure: false,
         sameSite: 'strict',
         maxAge: 24 * 60 * 60, // 24 hours
       });
@@ -62,6 +62,7 @@ export async function refreshSession() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        credentials: 'include',
       },
       body: JSON.stringify({ refresh: refreshToken }),
     });
