@@ -37,9 +37,14 @@ export default function RegisterUserModal({ isOpen, onOpenChange }) {
       setErrors(newErrors);
       return;
     }
+  
+    const userData = { username, password, role };
+    console.log("Submitting User Data:", userData); // Debugging
+  
     try {
-      const response = await createUser({ username, password, role });
+      const response = await createUser(userData);
       setApiResponse(response);
+  
       if (!response.error) {
         setUsername("");
         setPassword("");
@@ -48,14 +53,11 @@ export default function RegisterUserModal({ isOpen, onOpenChange }) {
         onClose();
       }
     } catch (error) {
-      setApiResponse({
-        error:
-          error.message || "An unexpected error occurred. Please try again.",
-      });
+      setApiResponse({ error: error.message || "An unexpected error occurred." });
     }
   };
-
-  return (
+  
+    return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
       <ModalContent>
         {(onClose) => (
@@ -91,7 +93,7 @@ export default function RegisterUserModal({ isOpen, onOpenChange }) {
                   label="Role"
                   name="role"
                   selectedKey={role}
-                  onSelectionChange={setRole}
+                  onSelectionChange={(selected) => setRole(Array.from(selected)[0])}
                 >
                   <SelectItem key="admin" value="admin">
                     Admin

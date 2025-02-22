@@ -32,7 +32,7 @@ export default function UserInfoModal({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData);
-
+  
     const newErrors = {};
     if (data.username === "admin") {
       newErrors.username = "Nice try! Choose a different username.";
@@ -41,7 +41,10 @@ export default function UserInfoModal({
       setErrors(newErrors);
       return;
     }
-
+  
+    // Ensure role is sent as a string, not a Set
+    data.role = Array.isArray(data.role) ? data.role[0] : data.role;
+  
     setErrors({});
     setLoading(true);
     try {
@@ -53,7 +56,7 @@ export default function UserInfoModal({
       setLoading(false);
     }
   };
-
+  
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
       <ModalContent>

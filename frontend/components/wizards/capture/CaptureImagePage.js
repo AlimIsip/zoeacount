@@ -1,163 +1,145 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import Webcam from "react-webcam";
-import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/react";
+"use client";
 
-// Utility function to compare arrays deeply
-const arraysAreEqual = (arr1, arr2) => JSON.stringify(arr1) === JSON.stringify(arr2);
+import React, { useState, useEffect } from "react";
+import VideoStream from "@/components/videofeed";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  useDisclosure,
+} from "@heroui/react";
+import { fetchCaptureImage } from "@/lib/dataimage";
 
 export default function CaptureImagePage({
   setCurrentPage,
   setFileName,
   fileName,
-  onUploadClick,
-  uploading,
-  uploaded,
+  capturing,
+  captured,
   countData,
   imageUrl,
   inferenceLogs = [],
+  handleCapturedSubmit,
   error,
 }) {
-  const videoConstraints = {
-    width: 1920,
-    height: 1080,
-    facingMode: "user",
-  };
-
-  const webcamRef = useRef(null);
-  const [imgSrc, setImgSrc] = useState(null);
-  const { isOpen: isLogOpen, onOpen: onLogOpen, onClose: onLogClose } = useDisclosure();
+  const [preview, setPreview] = useState(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const [logs, setLogs] = useState([]);
   const [processingComplete, setProcessingComplete] = useState(false);
+  const [captureError, setCaptureError] = useState(null);
+  const [modalError, setModalError] = useState(null);
 
-  // Capture Image
-  const capture = useCallback(() => {
-    const imageSrc = webcamRef.current.getScreenshot({
-      width: 1920,
-      height: 1080,
-    });
-    setImgSrc(imageSrc);
-    setLogs(["Image captured successfully."]);
-    setProcessingComplete(false);
-  }, []);
-
-  // Update logs only when inferenceLogs change
   useEffect(() => {
-    if (!arraysAreEqual(logs, inferenceLogs)) {
-      setLogs(inferenceLogs);
-    }
+    setLogs(inferenceLogs);
   }, [inferenceLogs]);
 
-  
+  useEffect(() => {
+    if (captured && logs.length > 0) {
+      onOpen();
+    }
+  }, [captured, logs, onOpen]);
 
-  // Handle image submission
-  const handleSubmit = async () => {
-    if (!imgSrc) return;
 
-    setLogs(["Submitting image for inference..."]);
-    setProcessingComplete(false);
-    onLogOpen(); // Show modal only after submit
+  useEffect(() => {
+    if (countData && imageUrl) {
+      setProcessingComplete(true);
+      setTimeout(() => {
+        setCurrentPage(3);
+        onClose();
+      }, 1000);
+    }
+  }, [countData, imageUrl, onClose, setCurrentPage]);
 
+  const handleCapture = async () => {
+    setCaptureError(null);
     try {
-      await onUploadClick(imgSrc);
-      setLogs((prevLogs) => [...prevLogs, "Image submitted successfully."]);
-    } catch (e) {
-      setLogs((prevLogs) => [...prevLogs, "Error submitting image."]);
+      const imageUrl = await fetchCaptureImage(); // Fetch image URL instead of Blob
+      setPreview(imageUrl.imageUrl); // Use URL for preview
+      setFileName(imageUrl.filename); // Keep filename for consistency
+
+    } catch (err) {
+      console.error("Error capturing image:", err);
+      setCaptureError(err.message || "Failed to capture image. Please try again.");
     }
   };
+
+  const handleRecapture = () => {
+    setPreview(null);
+    setCaptureError(null);
+  };
+
+  
 
   return (
     <div className="flex flex-col items-center space-y-6 p-6 bg-white shadow-md rounded-lg">
       <h2 className="text-2xl font-semibold text-gray-800">Capture Image</h2>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
-        {/* Webcam / Image Preview */}
+        {/* Display Preview, Loading, or Video Stream */}
         <div className="flex items-center justify-center bg-gray-100 rounded-lg p-4 shadow-inner aspect-[4/3]">
-          {imgSrc ? (
-            <img src={imgSrc} alt="Captured" className="max-h-72 object-contain rounded-md" />
+          {capturing ? (
+            <p className="text-gray-500">Capturing...</p>
+          ) : preview ? (
+            <img src={preview} alt="Preview" className="object-contain rounded-md" />
           ) : (
-            <Webcam
-              className="rounded-lg shadow-lg"
-              audio={false}
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              videoConstraints={videoConstraints}
-              screenshotQuality={1}
-            />
+            <VideoStream />
           )}
         </div>
 
         {/* Capture Controls */}
-        <div className="flex flex-col items-center justify-center gap-4 p-4 bg-gray-50 rounded-lg shadow">
-          {imgSrc ? (
+        <div className="flex flex-col items-center justify-center gap-4 p-4 border rounded-lg bg-gray-50 shadow">
+          {captureError && <p className="text-red-500">{captureError}</p>}
+          {preview ? (
             <>
-              <Button
-                onPress={handleSubmit}
-                className="px-5 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition"
-              >
-                Submit
+              <Button onPress={handleRecapture} className="bg-gray-500 text-white px-4 py-2 rounded-lg">
+                Recapture Image
               </Button>
-              <Button
-                onPress={() => {
-                  setImgSrc(null);
-                  setLogs([]);
-                  setProcessingComplete(false);
-                }}
-                className="px-5 py-2 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition"
-              >
-                Recapture
+              <Button onPress={()=> {
+                handleCapturedSubmit(fileName, preview, setModalError);
+                onOpen();
+                }} 
+                className="bg-green-500 text-white px-4 py-2 rounded-lg">
+                Submit
               </Button>
             </>
           ) : (
             <Button
-              onPress={capture}
-              className="px-5 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition"
+              onPress={handleCapture}
+              disabled={capturing}
+              className="px-5 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
             >
-              Capture Photo
+              {capturing ? "Capturing..." : "Capture Image"}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Inference Logs Modal (Only Opens After Submit) */}
-      <Modal key={logs.length} backdrop={"blur"} isOpen={isLogOpen} onClose={onLogClose}>
+      {/* Modal for Processing */}
+      <Modal key={logs.length} backdrop="blur" isOpen={isOpen} onClose={onClose}>
         <ModalContent>
-          {(onLogClose) => (
+          {onClose => (
             <>
-              <ModalHeader>Inference Logs</ModalHeader>
+              <ModalHeader>Processing Image...</ModalHeader>
               <ModalBody>
-                {uploading ? (
-                  <p>Uploading...</p>
-                ) : uploaded ? (
+                {modalError ? (
+                  <p className="text-red-500">{modalError}</p>
+                ) : processingComplete ? (
+                  <p className="text-green-600">Inference successful! Proceeding...</p>
+                ) : error ? (
+                  <p className="text-red-500">Error: {error}</p>
+                ) : (
                   <>
-                    <p className="text-green-600 font-medium">Upload successful!</p>
+                    <p className="text-green-600 font-medium">Capture successful!</p>
                     <div className="bg-gray-900 text-white p-3 h-40 overflow-y-auto text-sm rounded-lg">
                       {logs.length > 0 ? logs.map((log, index) => <p key={index}>{log}</p>) : <p>Waiting for inference logs...</p>}
                     </div>
-
-                    {processingComplete ? (
-                      <p className="text-green-600">Inference successful! Proceeding...</p>
-                    ) : error ? (
-                      <>
-                        <p className="text-red-500">Error: {error}</p>
-                        <Button color="danger" variant="light" onPress={onLogClose}>
-                          Close
-                        </Button>
-                      </>
-                    ) : (
-                      <p>Waiting for inference results...</p>
-                    )}
                   </>
-                ) : (
-                  <div>
-                    <p className="text-red-500">Upload failed.</p>
-                    <Button color="danger" variant="light" onPress={onLogClose}>
-                      Close
-                    </Button>
-                  </div>
                 )}
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={onLogClose}>
+                <Button color="danger" variant="light" onPress={onClose}>
                   Close
                 </Button>
               </ModalFooter>

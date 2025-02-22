@@ -1,5 +1,5 @@
 import "./globals.css";
-import {isActive, getUser} from "@/lib/sessiondetails";
+import {isActive, getUser, isRole} from "@/lib/sessiondetails";
 import Header from "@/components/layout/NavBar";
 
 
@@ -11,16 +11,17 @@ export const metadata = {
 export default async function RootLayout({ children }) {
   const status = await isActive();
   const user = await getUser();
-  console.log("the user is", user);
+  const isAdmin = await isRole("admin");
+  console.log("the user is", user, isAdmin);
 
   return (
     <html lang="en">
-      <head>
+      <head> 
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body>
-      <Header isActive={status} user={user}/>
-          {children}
+      <body className="bg-sky-950 text-amber-700 min-h-screen">
+        <Header isActive={status} user={user} />
+        <main className="container mx-auto p-6">{children}</main>
       </body>
     </html>
   );

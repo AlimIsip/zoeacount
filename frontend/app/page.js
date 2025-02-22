@@ -48,9 +48,7 @@ export default async function Home() {
   function getCurrentPhase(currentAge) {
     const phaseDuration = 3; 
     const totalPhases = 5; 
-  
     const phase = Math.min(Math.floor(currentAge / phaseDuration) + 1, totalPhases);
-    
     return phase;
   }
 
@@ -82,12 +80,12 @@ export default async function Home() {
             <div className="flex">
               <div className="flex-col flex-grow">
                 <Card description={"Current Phase Timeline"}>
-                  {phaseTimelineChart(5, daysLeftUntilNextPhase)}
+                  {phaseTimelineChart(5, currentPhase)}
                 </Card>
               </div>
               <div className="flex-col flex-grow">
                 <Card description={"Days until next phase"}>
-                  {phaseTimelineChart(3,1)}
+                  {phaseTimelineChart(3,daysLeftUntilNextPhase)}
                 </Card>
               </div>
             </div>

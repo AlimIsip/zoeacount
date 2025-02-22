@@ -68,6 +68,42 @@ export default function Wizard() {
     setProcessingComplete(true);
   };
 
+  const handleCapturedSubmit = async (fileName, preview, setModalError) => {
+      if (!preview) {
+        setModalError("No image captured. Please capture an image first.");
+        return;
+      }
+    
+      setModalError(null);
+      setLogs([]);
+      setInferenceLogs([]);
+      setProcessingComplete(false);
+      setIsProcessing(true);
+    
+      const inferenceResult = await handleInference(fileName); // Use filename instead of file
+      setLogs(inferenceResult.logs);
+      setInferenceLogs((prevLogs) => [...prevLogs, ...inferenceResult.logs]);
+      setIsProcessing(false);
+    
+      if (inferenceResult.error) {
+        setError(inferenceResult.error);
+        return;
+      }
+    
+      const processedData = await fetchProcessedImage(fileName);
+      if (processedData.error) {
+        setError(processedData.error);
+      } else {
+        setCountData(inferenceResult.countData);
+        setImageUrl(processedData.imageUrl);
+        setBatchData(processedData.batchData);
+        setCaptureDate(processedData.captureDate);
+        setCaptureTime(processedData.captureTime);
+      }
+    
+      setProcessingComplete(true);
+    };
+
   useEffect(() => {
     console.log("Updated logs:", logs);
   }, [logs]);
@@ -81,7 +117,19 @@ export default function Wizard() {
         {/* Page Content */}
         <div className="mb-6">
           {currentPage === 1 && <OptionsPage setCaptureOption={setCaptureOption} setCurrentPage={setCurrentPage} />}
-          {currentPage === 2 && captureOption === "Capture" && <CaptureImagePage setCurrentPage={setCurrentPage} />}
+          {currentPage === 2 && captureOption === "Capture" && <CaptureImagePage 
+          setCurrentPage={setCurrentPage} 
+          setFileName={setFileName}
+          fileName={fileName}
+          uploading={uploading}
+          uploaded={uploaded}
+          countData={countData}
+          imageUrl={imageUrl}
+          inferenceLogs={logs}
+          error={error}
+          handleCapturedSubmit={handleCapturedSubmit}
+
+          />}
           {currentPage === 2 && captureOption === "Upload" && (
             <UploadImagePage
               setCurrentPage={setCurrentPage}
@@ -94,7 +142,7 @@ export default function Wizard() {
               imageUrl={imageUrl}
               inferenceLogs={logs}
               error={error}
-              processingComplete={processingComplete}
+             
             />
           )}
           {currentPage === 3 && (
