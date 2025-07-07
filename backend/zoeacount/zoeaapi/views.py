@@ -109,7 +109,7 @@ def get_table(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_dashboard_stats(request):
-    latest = ZoeaTable.objects.latest('datestamp')
+    latest = ZoeaTable.objects.latest('datestamp', 'timestamp')
     serializer = ZoeaTableSerializer(latest, context={'request': request})
     return JsonResponse(serializer.data, safe=False)
 

@@ -6,6 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function fetchDashboardData() {
   try {
+    console.log(API_URL);
     const data = await fetch(`${API_URL}/api/table/dashboard`);
     const dashboard_data = await data.json();
     return dashboard_data;

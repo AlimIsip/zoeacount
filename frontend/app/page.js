@@ -65,7 +65,7 @@ export default async function Home() {
 
   return (
     <div className="bg-sky-800 p-3 flex justify-center items-center">
-      <Body>
+
         <div className="grid grid-cols-4 gap-2 px-8 py-4">
           <h1 className="text-4xl font-semibold col-span-4 text-darkblue">
             Dashboard
@@ -140,7 +140,6 @@ export default async function Home() {
           {/* Phase Timeline */}
           <div className="col-span-4 space-y-4"></div>
         </div>
-      </Body>
     </div>
   );
 }

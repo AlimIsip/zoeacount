@@ -61,8 +61,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://10.42.0.1:3000",
-    "http://192.168.1.12:3000",
-    "http://10.42.0.1:3000"
+    "http://192.168.1.12:3000"
  
 ]
 CORS_ALLOW_HEADERS = [
@@ -195,4 +194,8 @@ SESSION_COOKIE_SECURE = False  # Should be True in production (use HTTPS)
 
 CSRF_COOKIE_SECURE = False  # Secure cookie (only for HTTPS)
 CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_HTTPONLY = False
+# CSRF_TRUSTED_ORIGINS = ['http://0.0.0.0/', 'http://192.168.1.12/', 'http://localhost/', 'http://127.0.0.1/', 'http://10.42.0.1:8000/', 'http://10.42.0.1:3000/']
+# CSRF_ALLOWED_ORIGINS = ['http://0.0.0.0/', 'http://192.168.1.12/', 'http://localhost/', 'http://127.0.0.1/', 'http://10.42.0.1:8000/', 'http://10.42.0.1:3000/']
+
 SESSION_COOKIE_SAMESITE = 'None'
